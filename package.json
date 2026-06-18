@@ -1,0 +1,48 @@
+{
+  "name": "metapronostic",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --webpack",
+    "build": "next build --webpack",
+    "start": "next start",
+    "lint": "eslint",
+    "test:mongodb": "node scripts/test-mongodb.js",
+    "seed:football": "node scripts/seed-football-fake-data.js",
+    "clear:fake-data": "node scripts/clear-football-fake-data.js",
+    "test:chat": "node scripts/test-chat.js",
+    "list:gemini-models": "node scripts/list-gemini-models.js",
+    "test:admin-auth": "node scripts/test-admin-auth.js",
+    "test:admin-insert": "node scripts/test-admin-insert.js",
+    "test:agent-role": "node scripts/test-agent-role.js",
+    "test:agent-form-ui": "node scripts/test-agent-form-ui.js",
+    "test:admin-options": "node scripts/test-admin-options.js"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "@hookform/resolvers": "^5.2.2",
+    "@pinecone-database/pinecone": "^4.1.0",
+    "@supabase/ssr": "^0.10.3",
+    "@supabase/supabase-js": "^2.107.0",
+    "framer-motion": "^12.33.0",
+    "lucide-react": "^0.563.0",
+    "mongodb": "^7.3.0",
+    "next": "16.1.6",
+    "pdf-parse": "^2.4.5",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "react-hook-form": "^7.71.1",
+    "xlsx": "^0.18.5",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.1.6",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}

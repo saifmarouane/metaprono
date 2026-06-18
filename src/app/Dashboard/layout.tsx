@@ -1,0 +1,84 @@
+import Link from "next/link";
+import { MetaPronosticProvider } from "@/contexts/metapronostic-context";
+import { Activity, ChevronLeft, Trophy } from "lucide-react";
+
+export default function DashboardLayout({
+  chat,
+  explorer,
+}: {
+  children: React.ReactNode;
+  chat: React.ReactNode;
+  explorer: React.ReactNode;
+}) {
+  return (
+    <MetaPronosticProvider>
+      <div className="min-h-screen bg-[#07110d] p-4 text-white sm:p-6">
+        <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-lime-400 text-[#07110d]">
+              <Trophy className="h-6 w-6" />
+            </div>
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.22em] text-lime-300">
+                Prediction cockpit
+              </p>
+              <h1 className="text-2xl font-black tracking-normal">
+                MetaPronostic
+              </h1>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Link
+              href="/admin"
+              className="inline-flex items-center justify-center rounded-lg bg-lime-400 px-4 py-2 text-sm font-black text-[#07110d] transition hover:bg-lime-300"
+            >
+              Admin
+            </Link>
+            <Link
+              href="/agent"
+              className="inline-flex items-center justify-center rounded-lg border border-cyan-300/20 bg-cyan-300/10 px-4 py-2 text-sm font-bold text-cyan-100 transition hover:bg-cyan-300/20"
+            >
+              Agent
+            </Link>
+            <Link
+              href="/"
+              className="inline-flex items-center justify-center gap-2 rounded-lg border border-white/15 bg-white/5 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-white/10"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              Accueil
+            </Link>
+          </div>
+        </div>
+        <div className="mb-5 grid gap-3 md:grid-cols-4">
+          {[
+            ["Live fixtures", "12", "text-lime-300"],
+            ["Model confidence", "78%", "text-cyan-300"],
+            ["Odds alerts", "5", "text-amber-300"],
+            ["Data sync", "Active", "text-emerald-300"],
+          ].map(([label, value, color]) => (
+            <div
+              key={label}
+              className="rounded-lg border border-white/10 bg-white/[0.04] px-4 py-3"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs font-bold uppercase text-slate-400">
+                  {label}
+                </p>
+                <Activity className={`h-4 w-4 ${color}`} />
+              </div>
+              <p className={`mt-2 text-xl font-black ${color}`}>{value}</p>
+            </div>
+          ))}
+        </div>
+        <div className="grid h-[calc(100vh-12rem)] grid-cols-1 gap-5 lg:grid-cols-[1.1fr_0.9fr]">
+          <div className="overflow-hidden rounded-xl border border-white/10 bg-[#0b1712]/95 shadow-2xl shadow-black/30 backdrop-blur-xl">
+            {chat}
+          </div>
+          <div className="overflow-hidden rounded-xl border border-white/10 bg-[#0b1712]/95 shadow-2xl shadow-black/30 backdrop-blur-xl">
+            {explorer}
+          </div>
+        </div>
+      </div>
+    </MetaPronosticProvider>
+  );
+}

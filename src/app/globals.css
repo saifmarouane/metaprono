@@ -1,0 +1,21 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #07110d;
+  --color-card: #0b1712;
+  --color-accent: #a3e635;
+  --color-pitch-green: #22c55e;
+  --color-data-cyan: #22d3ee;
+  --color-warning-odds: #f59e0b;
+  --color-dashboard-bg: #07110d;
+  --color-dashboard-card: #0b1712;
+
+  --font-sans: var(--font-inter);
+}
+
+body {
+  background-color: var(--color-primary);
+  color: #f8fafc;
+  font-family: var(--font-sans);
+}
+
