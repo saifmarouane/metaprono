@@ -1,13 +1,20 @@
 "use client";
 
 import { motion, type Variants } from "framer-motion";
+import { useState } from "react";
 import {
   Activity,
   ArrowRight,
   BarChart3,
   CircleDot,
   Database,
+  Goal,
+  Menu,
+  MessageCircle,
   LineChart,
+  LogIn,
+  X,
+  UserCircle2,
   Radio,
   ShieldCheck,
   Trophy,
@@ -28,6 +35,21 @@ const signals = [
   { label: "Win probability", value: "64%", icon: LineChart },
   { label: "Odds drift", value: "+8.2", icon: Activity },
   { label: "Form index", value: "91", icon: Zap },
+];
+
+const matchEvents = [
+  { minute: "18'", label: "Pressing haut", tone: "text-lime-200" },
+  { minute: "34'", label: "Cote home +8.2", tone: "text-amber-200" },
+  { minute: "61'", label: "xG momentum", tone: "text-cyan-200" },
+];
+
+const playerDots = [
+  ["left-[18%] top-[24%]", "bg-lime-300/90"],
+  ["left-[30%] top-[45%]", "bg-lime-300/90"],
+  ["left-[42%] top-[68%]", "bg-lime-300/90"],
+  ["left-[62%] top-[30%]", "bg-cyan-300/90"],
+  ["left-[74%] top-[54%]", "bg-cyan-300/90"],
+  ["left-[83%] top-[72%]", "bg-cyan-300/90"],
 ];
 
 const features = [
@@ -60,58 +82,187 @@ const collections = [
   "odds",
 ];
 
-export default function LandingPage() {
+const navLinks = [
+  { label: "Engine", href: "#engine" },
+  { label: "Data", href: "#data" },
+  { label: "Documentation", href: "/documentation" },
+];
+
+const whatsappHref =
+  "https://wa.me/212666599460?text=Bonjour%20MetaPronostic%2C%20je%20veux%20des%20informations%20sur%20la%20plateforme.";
+
+type LandingAuthUser = {
+  email: string;
+  role: "admin" | "agent" | "user";
+  status?: "pending" | "active" | "blocked";
+};
+
+type LandingPageProps = {
+  authUser: LandingAuthUser | null;
+};
+
+function getProfileHref(authUser: LandingAuthUser | null): string {
+  if (!authUser) {
+    return "/chat-login";
+  }
+
+  if (authUser.role === "admin") {
+    return "/admin";
+  }
+
+  if (authUser.role === "agent") {
+    return "/agent";
+  }
+
+  if (authUser.status === "pending") {
+    return "/pending-approval";
+  }
+
+  if (authUser.status === "blocked") {
+    return "/access-blocked";
+  }
+
+  return "/Dashboard";
+}
+
+function getAuthLabel(authUser: LandingAuthUser | null): string {
+  if (!authUser) {
+    return "S'authentifier";
+  }
+
+  if (authUser.role === "admin") {
+    return "Profil admin";
+  }
+
+  if (authUser.role === "agent") {
+    return "Profil agent";
+  }
+
+  return "Profil";
+}
+
+export default function LandingPage({ authUser }: LandingPageProps) {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const profileHref = getProfileHref(authUser);
+  const authLabel = getAuthLabel(authUser);
+  const AuthIcon = authUser ? UserCircle2 : LogIn;
+
   return (
     <div className="min-h-screen overflow-hidden bg-[#07110d] text-white">
-      <nav className="sticky top-0 z-50 border-b border-white/10 bg-[#07110d]/85 backdrop-blur-xl">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          <Link href="/" className="flex items-center gap-3">
-            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-lime-400 text-[#07110d]">
-              <Trophy className="h-5 w-5" />
+      <nav className="sticky top-0 z-50 border-b border-white/10 bg-[#07110d]/80 backdrop-blur-2xl">
+        <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-lime-300/40 to-transparent" />
+        <div className="mx-auto flex h-18 max-w-7xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
+          <div className="flex min-w-0 items-center gap-3">
+            <Link href="/" className="group flex min-w-0 items-center gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-lime-400 text-[#07110d] shadow-lg shadow-lime-400/20 transition group-hover:bg-lime-300">
+                <Trophy className="h-5 w-5" />
+              </span>
+              <span className="min-w-0 truncate text-base font-black uppercase tracking-wide sm:text-lg">
+                MetaPronostic
+              </span>
+            </Link>
+            <span className="hidden rounded-full border border-lime-300/20 bg-lime-300/10 px-3 py-1 text-xs font-black uppercase text-lime-200 lg:inline-flex">
+              Football AI
             </span>
-            <span className="text-lg font-black uppercase tracking-wide">
-              MetaPronostic
-            </span>
-          </Link>
-          <div className="hidden items-center gap-8 md:flex">
-            <a
-              href="#engine"
-              className="text-sm font-medium text-white/70 transition-colors hover:text-lime-300"
-            >
-              Engine
-            </a>
-            <a
-              href="#data"
-              className="text-sm font-medium text-white/70 transition-colors hover:text-lime-300"
-            >
-              Data
-            </a>
           </div>
-          <Link
-            href="/Dashboard"
-            className="inline-flex items-center gap-2 rounded-lg bg-lime-400 px-4 py-2 text-sm font-bold text-[#07110d] transition hover:bg-lime-300"
+
+          <div className="hidden items-center rounded-lg border border-white/10 bg-white/[0.04] p-1 md:flex">
+            {navLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className="rounded-md px-4 py-2 text-sm font-bold text-white/70 transition hover:bg-white/[0.06] hover:text-lime-200"
+              >
+                {link.label}
+              </Link>
+            ))}
+          </div>
+
+          <div className="hidden items-center gap-2 sm:flex">
+            <a
+              href={whatsappHref}
+              target="_blank"
+              rel="noreferrer"
+              className="hidden h-10 items-center justify-center gap-2 rounded-lg border border-emerald-300/20 bg-emerald-300/10 px-4 text-sm font-black text-emerald-100 transition hover:bg-emerald-300/20 lg:inline-flex"
+            >
+              <MessageCircle className="h-4 w-4" />
+              WhatsApp
+            </a>
+            {authUser && (
+              <span className="hidden max-w-[220px] truncate rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-semibold text-slate-300 xl:inline-flex">
+                {authUser.email}
+              </span>
+            )}
+            <Link
+              href={profileHref}
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-lime-400 px-4 text-sm font-black text-[#07110d] shadow-lg shadow-lime-400/20 transition hover:bg-lime-300"
+            >
+              <AuthIcon className="h-4 w-4" />
+              {authLabel}
+            </Link>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setIsMenuOpen((value) => !value)}
+            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/[0.05] text-white transition hover:bg-white/[0.1] sm:hidden"
+            aria-label={isMenuOpen ? "Fermer le menu" : "Ouvrir le menu"}
+            aria-expanded={isMenuOpen}
           >
-            Chat IA
-            <ArrowRight className="h-4 w-4" />
-          </Link>
-          <Link
-            href="/admin"
-            className="hidden items-center rounded-lg border border-white/15 bg-white/5 px-4 py-2 text-sm font-bold text-white transition hover:bg-white/10 sm:inline-flex"
-          >
-            Admin
-          </Link>
-          <Link
-            href="/agent"
-            className="hidden items-center rounded-lg border border-cyan-300/20 bg-cyan-300/10 px-4 py-2 text-sm font-bold text-cyan-100 transition hover:bg-cyan-300/20 sm:inline-flex"
-          >
-            Agent
-          </Link>
+            {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
         </div>
+
+        {isMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            className="border-t border-white/10 bg-[#07110d]/95 px-4 pb-4 pt-3 backdrop-blur-2xl sm:hidden"
+          >
+            <div className="space-y-2">
+              {navLinks.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  onClick={() => setIsMenuOpen(false)}
+                  className="flex h-11 items-center rounded-lg border border-white/10 bg-white/[0.04] px-4 text-sm font-bold text-slate-200 transition hover:bg-white/[0.08]"
+                >
+                  {link.label}
+                </Link>
+              ))}
+              <Link
+                href={profileHref}
+                onClick={() => setIsMenuOpen(false)}
+                className="flex h-11 items-center justify-center gap-2 rounded-lg bg-lime-400 px-4 text-sm font-black text-[#07110d] transition hover:bg-lime-300"
+              >
+                <AuthIcon className="h-4 w-4" />
+                {authLabel}
+              </Link>
+              <a
+                href={whatsappHref}
+                target="_blank"
+                rel="noreferrer"
+                onClick={() => setIsMenuOpen(false)}
+                className="flex h-11 items-center justify-center gap-2 rounded-lg border border-emerald-300/20 bg-emerald-300/10 px-4 text-sm font-black text-emerald-100 transition hover:bg-emerald-300/20"
+              >
+                <MessageCircle className="h-4 w-4" />
+                Chat WhatsApp
+              </a>
+              {authUser && (
+                <div className="truncate rounded-lg border border-white/10 bg-white/[0.04] px-4 py-3 text-xs font-semibold text-slate-400">
+                  {authUser.email}
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
       </nav>
 
-      <section className="relative min-h-[calc(100vh-4rem)] px-4 py-10 sm:px-6 lg:px-8">
-        <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(34,197,94,0.12),transparent_35%,rgba(34,211,238,0.08)_70%,transparent)]" />
-        <div className="relative mx-auto grid max-w-7xl items-center gap-10 lg:grid-cols-[1fr_0.95fr]">
+      <section className="relative min-h-[calc(100vh-4rem)] px-4 py-8 sm:px-6 lg:px-8">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_22%_16%,rgba(132,204,22,0.18),transparent_28%),radial-gradient(circle_at_82%_22%,rgba(34,211,238,0.12),transparent_30%),linear-gradient(135deg,rgba(34,197,94,0.12),transparent_38%,rgba(34,211,238,0.08)_72%,transparent)]" />
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.025)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.025)_1px,transparent_1px)] bg-[size:48px_48px]" />
+        <div className="relative mx-auto grid max-w-7xl items-center gap-10 lg:grid-cols-[0.86fr_1.14fr]">
           <motion.div
             initial="initial"
             animate="animate"
@@ -164,41 +315,125 @@ export default function LandingPage() {
           </motion.div>
 
           <motion.div
-            initial={{ opacity: 0, scale: 0.96 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.65, ease: "easeOut" }}
-            className="relative min-h-[520px] overflow-hidden rounded-xl border border-white/10 bg-[#0b1712] shadow-2xl shadow-lime-950/40"
+            initial={{ opacity: 0, scale: 0.96, y: 18 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ duration: 0.75, ease: "easeOut" }}
+            className="relative min-h-[540px] overflow-hidden rounded-xl border border-white/10 bg-[#08130f] shadow-2xl shadow-lime-950/50"
           >
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(132,204,22,0.22),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.04),transparent)]" />
-            <div className="absolute left-1/2 top-14 h-[520px] w-[88%] -translate-x-1/2 rounded-[28px] border-2 border-lime-300/60 bg-[linear-gradient(90deg,rgba(34,197,94,0.18)_0_10%,rgba(22,163,74,0.08)_10%_20%,rgba(34,197,94,0.18)_20%_30%,rgba(22,163,74,0.08)_30%_40%,rgba(34,197,94,0.18)_40%_50%,rgba(22,163,74,0.08)_50%_60%,rgba(34,197,94,0.18)_60%_70%,rgba(22,163,74,0.08)_70%_80%,rgba(34,197,94,0.18)_80%_90%,rgba(22,163,74,0.08)_90%)]" />
-            <div className="absolute left-1/2 top-[314px] h-32 w-32 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-lime-300/60" />
-            <div className="absolute left-1/2 top-[314px] h-[2px] w-[88%] -translate-x-1/2 bg-lime-300/60" />
-            <div className="absolute left-[6%] top-[206px] h-56 w-24 rounded-r-xl border-y-2 border-r-2 border-lime-300/60" />
-            <div className="absolute right-[6%] top-[206px] h-56 w-24 rounded-l-xl border-y-2 border-l-2 border-lime-300/60" />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(163,230,53,0.22),transparent_28%),linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.01))]" />
+            <motion.div
+              animate={{ opacity: [0.28, 0.5, 0.28] }}
+              transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut" }}
+              className="absolute inset-x-8 top-8 h-28 rounded-full bg-lime-300/10 blur-3xl"
+            />
 
-            <div className="absolute left-6 top-6 rounded-lg border border-white/10 bg-[#08110d]/90 p-4 backdrop-blur">
-              <p className="text-xs font-bold uppercase text-slate-400">
-                Next fixture
-              </p>
-              <p className="mt-2 text-lg font-black text-white">PSG vs OM</p>
-              <p className="text-sm text-lime-300">Ligue 1 · 2025</p>
+            <div className="absolute left-1/2 top-16 h-[390px] w-[86%] -translate-x-1/2 overflow-hidden rounded-[30px] border-2 border-lime-200/60 bg-[linear-gradient(90deg,rgba(34,197,94,0.32)_0_10%,rgba(22,101,52,0.28)_10%_20%,rgba(34,197,94,0.32)_20%_30%,rgba(22,101,52,0.28)_30%_40%,rgba(34,197,94,0.32)_40%_50%,rgba(22,101,52,0.28)_50%_60%,rgba(34,197,94,0.32)_60%_70%,rgba(22,101,52,0.28)_70%_80%,rgba(34,197,94,0.32)_80%_90%,rgba(22,101,52,0.28)_90%)] shadow-2xl shadow-black/30">
+              <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.04)_1px,transparent_1px)] bg-[size:34px_34px]" />
+              <div className="absolute left-1/2 top-0 h-full w-[2px] -translate-x-1/2 bg-lime-100/65" />
+              <div className="absolute left-1/2 top-1/2 h-28 w-28 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-lime-100/65" />
+              <div className="absolute left-[4%] top-1/2 h-36 w-20 -translate-y-1/2 rounded-r-xl border-y-2 border-r-2 border-lime-100/65" />
+              <div className="absolute right-[4%] top-1/2 h-36 w-20 -translate-y-1/2 rounded-l-xl border-y-2 border-l-2 border-lime-100/65" />
+              <div className="absolute left-[4%] top-1/2 h-16 w-8 -translate-y-1/2 rounded-r-lg border-y-2 border-r-2 border-lime-100/65" />
+              <div className="absolute right-[4%] top-1/2 h-16 w-8 -translate-y-1/2 rounded-l-lg border-y-2 border-l-2 border-lime-100/65" />
+
+              <motion.div
+                animate={{ x: ["0%", "34%", "62%", "20%", "0%"], y: ["0%", "24%", "-8%", "32%", "0%"] }}
+                transition={{ duration: 7.5, repeat: Infinity, ease: "easeInOut" }}
+                className="absolute left-[19%] top-[47%] z-20 h-4 w-4 rounded-full border-2 border-white bg-white shadow-[0_0_24px_rgba(255,255,255,0.75)]"
+              />
+
+              <motion.div
+                animate={{ opacity: [0.25, 0.95, 0.25], scaleX: [0.76, 1, 0.76] }}
+                transition={{ duration: 2.6, repeat: Infinity, ease: "easeInOut" }}
+                className="absolute left-[24%] top-[51%] h-[2px] w-[48%] rotate-[-18deg] bg-cyan-200/80 shadow-[0_0_18px_rgba(103,232,249,0.7)]"
+              />
+              <motion.div
+                animate={{ opacity: [0.15, 0.8, 0.15], scaleX: [0.6, 1, 0.6] }}
+                transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
+                className="absolute left-[33%] top-[38%] h-[2px] w-[36%] rotate-[24deg] bg-lime-200/80 shadow-[0_0_18px_rgba(190,242,100,0.7)]"
+              />
+
+              {playerDots.map(([position, color], index) => (
+                <motion.div
+                  key={`${position}-${color}`}
+                  animate={{ y: [0, index % 2 === 0 ? -6 : 6, 0] }}
+                  transition={{
+                    duration: 2.4 + index * 0.18,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                  }}
+                  className={`absolute ${position} z-10 flex h-9 w-9 items-center justify-center rounded-full border border-white/50 ${color} shadow-lg shadow-black/35`}
+                >
+                  <span className="h-3 w-3 rounded-full bg-[#07110d]" />
+                </motion.div>
+              ))}
             </div>
 
-            <div className="absolute bottom-6 left-6 right-6 grid gap-3 sm:grid-cols-3">
-              {signals.map((signal) => (
-                <div
-                  key={signal.label}
-                  className="rounded-lg border border-white/10 bg-[#08110d]/90 p-4 backdrop-blur"
-                >
-                  <signal.icon className="mb-3 h-5 w-5 text-cyan-300" />
-                  <p className="text-2xl font-black text-white">
-                    {signal.value}
+            <div className="absolute left-5 top-5 rounded-lg border border-white/10 bg-[#07110d]/85 p-4 backdrop-blur-xl sm:left-7 sm:top-7">
+              <p className="text-xs font-black uppercase text-slate-400">
+                Next fixture
+              </p>
+              <div className="mt-2 flex items-center gap-3">
+                <Goal className="h-5 w-5 text-lime-300" />
+                <p className="text-lg font-black text-white">PSG vs OM</p>
+              </div>
+              <p className="mt-1 text-sm font-bold text-lime-300">
+                Ligue 1 · Live model
+              </p>
+            </div>
+
+            <div className="absolute right-5 top-5 rounded-lg border border-cyan-300/20 bg-cyan-300/10 p-4 backdrop-blur-xl sm:right-7 sm:top-7">
+              <p className="text-xs font-black uppercase text-cyan-100/80">
+                Confidence
+              </p>
+              <p className="mt-1 text-3xl font-black text-cyan-100">78%</p>
+            </div>
+
+            <div className="absolute bottom-5 left-5 right-5 grid gap-3 md:grid-cols-[1fr_0.92fr]">
+              <div className="rounded-lg border border-white/10 bg-[#07110d]/88 p-4 backdrop-blur-xl">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <p className="text-xs font-black uppercase text-slate-400">
+                    Timeline IA
                   </p>
-                  <p className="mt-1 text-xs font-semibold uppercase text-slate-400">
-                    {signal.label}
-                  </p>
+                  <span className="rounded-md bg-lime-300/15 px-2 py-1 text-xs font-black text-lime-200">
+                    Live
+                  </span>
                 </div>
-              ))}
+                <div className="space-y-2">
+                  {matchEvents.map((event) => (
+                    <div
+                      key={event.minute}
+                      className="flex items-center justify-between gap-3 rounded-md border border-white/10 bg-white/[0.04] px-3 py-2"
+                    >
+                      <span className="text-xs font-black text-slate-500">
+                        {event.minute}
+                      </span>
+                      <span className={`text-sm font-bold ${event.tone}`}>
+                        {event.label}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-3 md:grid-cols-1">
+                {signals.map((signal) => (
+                  <div
+                    key={signal.label}
+                    className="rounded-lg border border-white/10 bg-[#07110d]/88 p-4 backdrop-blur-xl"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <signal.icon className="h-5 w-5 text-cyan-300" />
+                      <p className="text-2xl font-black text-white">
+                        {signal.value}
+                      </p>
+                    </div>
+                    <p className="mt-2 text-xs font-semibold uppercase text-slate-400">
+                      {signal.label}
+                    </p>
+                  </div>
+                ))}
+              </div>
             </div>
           </motion.div>
         </div>
@@ -287,6 +522,17 @@ export default function LandingPage() {
           </p>
         </div>
       </footer>
+
+      <a
+        href={whatsappHref}
+        target="_blank"
+        rel="noreferrer"
+        className="fixed bottom-5 right-5 z-50 inline-flex h-14 w-14 items-center justify-center rounded-xl border border-emerald-200/30 bg-emerald-400 text-[#07110d] shadow-2xl shadow-emerald-500/30 transition hover:scale-105 hover:bg-emerald-300 sm:h-auto sm:w-auto sm:gap-2 sm:px-5 sm:py-4"
+        aria-label="Chat WhatsApp MetaPronostic"
+      >
+        <MessageCircle className="h-6 w-6" />
+        <span className="hidden text-sm font-black sm:inline">WhatsApp</span>
+      </a>
     </div>
   );
 }

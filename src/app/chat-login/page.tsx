@@ -194,6 +194,12 @@ export default async function ChatLoginPage({ searchParams }: ChatLoginPageProps
             >
               Retour a l'accueil
             </Link>
+            <Link
+              href="/login"
+              className="ml-4 text-sm font-semibold text-cyan-300 transition hover:text-cyan-100"
+            >
+              Acces admin ou agent
+            </Link>
           </div>
         </div>
       </div>
