@@ -5,7 +5,6 @@ import {
   Eye,
   LogOut,
   Table2,
-  Trophy,
 } from "lucide-react";
 import { getMongoAdminSnapshot } from "@/lib/mongodb-admin";
 import { isAdminAuthenticated } from "@/lib/admin-auth";
@@ -13,6 +12,7 @@ import { redirect } from "next/navigation";
 import { AdminInsertForm } from "@/components/admin/AdminInsertForm";
 import { AdminUsersPanel } from "@/components/admin/AdminUsersPanel";
 import { listChatUsers } from "@/lib/chat-users";
+import { BrandLogo } from "@/components/BrandLogo";
 
 export const dynamic = "force-dynamic";
 
@@ -81,13 +81,11 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
     )?.count ?? 0;
 
   return (
-    <main className="min-h-screen bg-[#07110d] p-4 text-white sm:p-6">
+    <main className="min-h-screen bg-[#11274c] p-4 text-white sm:p-6">
       <div className="mx-auto max-w-7xl">
         <header className="mb-6 flex flex-col gap-4 border-b border-white/10 pb-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-lime-400 text-[#07110d]">
-              <Trophy className="h-6 w-6" />
-            </div>
+            <BrandLogo size="md" />
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.22em] text-lime-300">
                 Admin database viewer
@@ -107,7 +105,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
             </Link>
             <Link
               href="/"
-              className="inline-flex items-center justify-center rounded-lg bg-lime-400 px-4 py-2 text-sm font-black text-[#07110d] transition hover:bg-lime-300"
+              className="inline-flex items-center justify-center rounded-lg bg-lime-400 px-4 py-2 text-sm font-black text-white transition hover:bg-lime-300"
             >
               Accueil
             </Link>
@@ -153,7 +151,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         <AdminUsersPanel users={chatUsers} />
 
         <div className="grid gap-5 lg:grid-cols-[460px_1fr]">
-          <aside className="rounded-xl border border-white/10 bg-[#0b1712] p-4">
+          <aside className="rounded-xl border border-white/10 bg-[#0d1b33] p-4">
             <div className="mb-4 flex items-center gap-2">
               <Database className="h-5 w-5 text-lime-300" />
               <h2 className="font-black">Collections</h2>
@@ -191,7 +189,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
             <AdminInsertForm defaultCollection={snapshot.selectedCollection} />
           </aside>
 
-          <section className="overflow-hidden rounded-xl border border-white/10 bg-[#0b1712]">
+          <section className="overflow-hidden rounded-xl border border-white/10 bg-[#0d1b33]">
             <div className="flex flex-col gap-4 border-b border-white/10 p-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-cyan-400/10 text-cyan-300">
@@ -217,7 +215,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                       )}&limit=${limit}`}
                       className={`rounded-lg px-3 py-2 text-xs font-black transition ${
                         snapshot.limit === limit
-                          ? "bg-lime-400 text-[#07110d]"
+                          ? "bg-lime-400 text-white"
                           : "border border-white/10 bg-white/[0.04] text-slate-300 hover:bg-white/[0.08]"
                       }`}
                     >

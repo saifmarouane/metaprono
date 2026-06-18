@@ -8,14 +8,14 @@ export async function POST(req: NextRequest) {
   const password = String(formData.get("password") ?? "");
 
   if (!name || !email || password.length < 8) {
-    const url = new URL("/chat-login", req.url);
+    const url = new URL("/login", req.url);
     url.searchParams.set("error", "invalid-register");
     return NextResponse.redirect(url, { status: 303 });
   }
 
   const result = await registerChatUser({ name, email, password });
   if (!result.ok) {
-    const url = new URL("/chat-login", req.url);
+    const url = new URL("/login", req.url);
     url.searchParams.set("error", "exists");
     return NextResponse.redirect(url, { status: 303 });
   }

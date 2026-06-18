@@ -67,7 +67,7 @@ export function AdminUsersPanel({ users }: AdminUsersPanelProps) {
   }
 
   return (
-    <section className="mb-5 overflow-hidden rounded-xl border border-white/10 bg-[#0b1712]">
+    <section className="mb-5 overflow-hidden rounded-xl border border-white/10 bg-[#0d1b33]">
       <div className="flex flex-col gap-3 border-b border-white/10 p-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-cyan-400/10 text-cyan-300">
@@ -144,7 +144,7 @@ export function AdminUsersPanel({ users }: AdminUsersPanelProps) {
                           type="button"
                           disabled={isBusy || user.status === "active"}
                           onClick={() => changeStatus(user.id, "active")}
-                          className="rounded-lg bg-lime-400 px-3 py-2 text-xs font-black text-[#07110d] transition hover:bg-lime-300 disabled:cursor-not-allowed disabled:opacity-40"
+                          className="rounded-lg bg-lime-400 px-3 py-2 text-xs font-black text-white transition hover:bg-lime-300 disabled:cursor-not-allowed disabled:opacity-40"
                         >
                           Valider
                         </button>

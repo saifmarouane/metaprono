@@ -6,13 +6,13 @@ import {
   Database,
   ListChecks,
   ShieldCheck,
-  Trophy,
 } from "lucide-react";
 import {
   type FootballCollectionGuide,
   FOOTBALL_COLLECTION_GUIDES,
   getFieldGuides,
 } from "@/lib/football-collection-guides";
+import { BrandLogo } from "@/components/BrandLogo";
 
 const fillOrder = [
   "football_countries",
@@ -53,13 +53,11 @@ export default function DocumentationPage() {
     .filter((guide): guide is FootballCollectionGuide => Boolean(guide));
 
   return (
-    <main className="min-h-screen bg-[#07110d] text-white">
-      <nav className="sticky top-0 z-50 border-b border-white/10 bg-[#07110d]/85 backdrop-blur-2xl">
+    <main className="min-h-screen bg-[#11274c] text-white">
+      <nav className="sticky top-0 z-50 border-b border-white/10 bg-[#11274c]/85 backdrop-blur-2xl">
         <div className="mx-auto flex h-18 max-w-7xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
           <Link href="/" className="flex min-w-0 items-center gap-3">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-lime-400 text-[#07110d]">
-              <Trophy className="h-5 w-5" />
-            </span>
+            <BrandLogo size="md" />
             <span className="truncate text-base font-black uppercase sm:text-lg">
               MetaPronostic
             </span>
@@ -93,7 +91,7 @@ export default function DocumentationPage() {
 
       <section className="px-4 py-10 sm:px-6 lg:px-8">
         <div className="mx-auto grid max-w-7xl gap-5 lg:grid-cols-[360px_1fr]">
-          <aside className="h-max rounded-xl border border-white/10 bg-[#0b1712] p-5 lg:sticky lg:top-24">
+          <aside className="h-max rounded-xl border border-white/10 bg-[#0d1b33] p-5 lg:sticky lg:top-24">
             <div className="mb-4 flex items-center gap-2">
               <ListChecks className="h-5 w-5 text-lime-300" />
               <h2 className="font-black">Ordre recommande</h2>
@@ -105,7 +103,7 @@ export default function DocumentationPage() {
                   href={`#${guide.name}`}
                   className="flex items-center gap-3 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-3 text-sm transition hover:border-lime-300/30 hover:bg-lime-300/10"
                 >
-                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-lime-400 text-xs font-black text-[#07110d]">
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-lime-400 text-xs font-black text-white">
                     {index + 1}
                   </span>
                   <span className="min-w-0">
@@ -122,7 +120,7 @@ export default function DocumentationPage() {
           </aside>
 
           <div className="space-y-5">
-            <section className="rounded-xl border border-white/10 bg-[#0b1712] p-5">
+            <section className="rounded-xl border border-white/10 bg-[#0d1b33] p-5">
               <div className="mb-4 flex items-center gap-2">
                 <ShieldCheck className="h-5 w-5 text-cyan-300" />
                 <h2 className="font-black">Regles avant insertion</h2>
@@ -147,7 +145,7 @@ export default function DocumentationPage() {
                 <section
                   key={guide.name}
                   id={guide.name}
-                  className="scroll-mt-24 rounded-xl border border-white/10 bg-[#0b1712] p-5"
+                  className="scroll-mt-24 rounded-xl border border-white/10 bg-[#0d1b33] p-5"
                 >
                   <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div>
@@ -164,7 +162,7 @@ export default function DocumentationPage() {
                     </div>
                     <Link
                       href={`/admin?collection=${guide.name}`}
-                      className="inline-flex h-10 items-center justify-center rounded-lg bg-lime-400 px-4 text-sm font-black text-[#07110d] transition hover:bg-lime-300"
+                      className="inline-flex h-10 items-center justify-center rounded-lg bg-lime-400 px-4 text-sm font-black text-white transition hover:bg-lime-300"
                     >
                       Remplir
                     </Link>

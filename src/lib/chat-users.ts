@@ -200,7 +200,7 @@ export async function getCurrentChatAccess(): Promise<{
     return {
       allowed: false,
       status: 401,
-      redirectTo: "/chat-login?next=/Dashboard",
+      redirectTo: "/login?next=/Dashboard",
       reason: "unauthenticated",
     };
   }
@@ -227,7 +227,7 @@ export async function getCurrentChatAccess(): Promise<{
     return {
       allowed: false,
       status: 401,
-      redirectTo: "/chat-login?next=/Dashboard",
+      redirectTo: "/login?next=/Dashboard",
       reason: "unauthenticated",
     };
   }
@@ -239,7 +239,7 @@ export async function getCurrentChatAccess(): Promise<{
     return {
       allowed: false,
       status: 401,
-      redirectTo: "/chat-login?next=/Dashboard",
+      redirectTo: "/login?next=/Dashboard",
       reason: "unauthenticated",
     };
   }

@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
         ? "/pending-approval"
         : result.reason === "blocked"
           ? "/access-blocked"
-          : "/chat-login";
+          : "/login";
     const url = new URL(target, req.url);
 
     if (result.reason === "invalid") {

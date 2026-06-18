@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { MetaPronosticProvider } from "@/contexts/metapronostic-context";
-import { Activity, ChevronLeft, LogOut, Trophy } from "lucide-react";
+import { Activity, ChevronLeft, LogOut } from "lucide-react";
 import { getCurrentChatAccess } from "@/lib/chat-users";
 import { redirect } from "next/navigation";
+import { BrandLogo } from "@/components/BrandLogo";
 
 export const dynamic = "force-dynamic";
 
@@ -22,12 +23,10 @@ export default async function DashboardLayout({
 
   return (
     <MetaPronosticProvider>
-      <div className="min-h-screen bg-[#07110d] p-4 text-white sm:p-6">
+      <div className="min-h-screen bg-[#11274c] p-4 text-white sm:p-6">
         <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-lime-400 text-[#07110d]">
-              <Trophy className="h-6 w-6" />
-            </div>
+            <BrandLogo size="md" />
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.22em] text-lime-300">
                 Prediction cockpit
@@ -45,7 +44,7 @@ export default async function DashboardLayout({
             )}
             <Link
               href="/admin"
-              className="inline-flex items-center justify-center rounded-lg bg-lime-400 px-4 py-2 text-sm font-black text-[#07110d] transition hover:bg-lime-300"
+              className="inline-flex items-center justify-center rounded-lg bg-lime-400 px-4 py-2 text-sm font-black text-white transition hover:bg-lime-300"
             >
               Admin
             </Link>
@@ -95,10 +94,10 @@ export default async function DashboardLayout({
           ))}
         </div>
         <div className="grid h-[calc(100vh-12rem)] grid-cols-1 gap-5 lg:grid-cols-[1.1fr_0.9fr]">
-          <div className="overflow-hidden rounded-xl border border-white/10 bg-[#0b1712]/95 shadow-2xl shadow-black/30 backdrop-blur-xl">
+          <div className="overflow-hidden rounded-xl border border-white/10 bg-[#0d1b33]/95 shadow-2xl shadow-black/30 backdrop-blur-xl">
             {chat}
           </div>
-          <div className="overflow-hidden rounded-xl border border-white/10 bg-[#0b1712]/95 shadow-2xl shadow-black/30 backdrop-blur-xl">
+          <div className="overflow-hidden rounded-xl border border-white/10 bg-[#0d1b33]/95 shadow-2xl shadow-black/30 backdrop-blur-xl">
             {explorer}
           </div>
         </div>

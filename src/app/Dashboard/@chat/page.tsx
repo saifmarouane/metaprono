@@ -209,7 +209,7 @@ export default function ChatSlotPage() {
                 <div
                   className={`max-w-[85%] rounded-2xl px-5 py-3.5 ${
                     message.role === "user"
-                      ? "bg-lime-400 text-[#07110d] shadow-lg shadow-lime-500/20"
+                      ? "bg-lime-400 text-white shadow-lg shadow-lime-500/20"
                       : "bg-white/5 border border-white/10 text-slate-100"
                   }`}
                 >
@@ -279,7 +279,7 @@ export default function ChatSlotPage() {
             <button
               type="submit"
               disabled={isLoading || !input.trim()}
-              className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-lime-400 text-[#07110d] transition-all hover:scale-105 hover:bg-lime-300 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-lime-400 text-white transition-all hover:scale-105 hover:bg-lime-300 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
               aria-label="Send message"
             >
               <Send className="h-5 w-5" />

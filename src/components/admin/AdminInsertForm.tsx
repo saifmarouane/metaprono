@@ -256,7 +256,7 @@ export function AdminInsertForm({ defaultCollection }: AdminInsertFormProps) {
             id="insert-collection"
             value={collection}
             onChange={(event) => handleCollectionChange(event.target.value)}
-            className="w-full rounded-lg border border-white/10 bg-[#07110d] px-3 py-3 text-sm font-bold text-white outline-none focus:border-lime-300/50 focus:ring-2 focus:ring-lime-300/20"
+            className="w-full rounded-lg border border-white/10 bg-[#11274c] px-3 py-3 text-sm font-bold text-white outline-none focus:border-lime-300/50 focus:ring-2 focus:ring-lime-300/20"
           >
             {FOOTBALL_COLLECTION_GUIDES.map((collectionGuide) => (
               <option key={collectionGuide.name} value={collectionGuide.name}>
@@ -339,7 +339,7 @@ export function AdminInsertForm({ defaultCollection }: AdminInsertFormProps) {
                         }`}
                       >
                         <span
-                          className={`block h-4 w-4 rounded-full bg-[#07110d] transition ${
+                          className={`block h-4 w-4 rounded-full bg-[#11274c] transition ${
                             Boolean(value) ? "translate-x-4" : ""
                           }`}
                         />
@@ -361,7 +361,7 @@ export function AdminInsertForm({ defaultCollection }: AdminInsertFormProps) {
                         }
                       }}
                       required={isRequired}
-                      className="w-full rounded-lg border border-white/10 bg-[#07110d] px-3 py-2 text-sm text-white outline-none transition focus:border-lime-300/50 focus:ring-2 focus:ring-lime-300/20"
+                      className="w-full rounded-lg border border-white/10 bg-[#11274c] px-3 py-2 text-sm text-white outline-none transition focus:border-lime-300/50 focus:ring-2 focus:ring-lime-300/20"
                     >
                       <option value="">
                         Selectionner {field.label.toLowerCase()}
@@ -442,7 +442,7 @@ export function AdminInsertForm({ defaultCollection }: AdminInsertFormProps) {
         <button
           type="submit"
           disabled={isSubmitting}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-lime-400 px-4 py-3 text-sm font-black text-[#07110d] transition hover:bg-lime-300 disabled:cursor-not-allowed disabled:opacity-60"
+          className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-lime-400 px-4 py-3 text-sm font-black text-white transition hover:bg-lime-300 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {isSubmitting ? (
             <Loader2 className="h-4 w-4 animate-spin" />

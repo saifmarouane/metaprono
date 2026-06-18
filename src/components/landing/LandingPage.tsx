@@ -17,10 +17,10 @@ import {
   UserCircle2,
   Radio,
   ShieldCheck,
-  Trophy,
   Zap,
 } from "lucide-react";
 import Link from "next/link";
+import { BrandLogo } from "@/components/BrandLogo";
 
 const fadeInUp: Variants = {
   initial: { opacity: 0, y: 28 },
@@ -103,7 +103,7 @@ type LandingPageProps = {
 
 function getProfileHref(authUser: LandingAuthUser | null): string {
   if (!authUser) {
-    return "/chat-login";
+    return "/login";
   }
 
   if (authUser.role === "admin") {
@@ -131,14 +131,14 @@ function getAuthLabel(authUser: LandingAuthUser | null): string {
   }
 
   if (authUser.role === "admin") {
-    return "Profil admin";
+    return "Acceder a l'espace admin";
   }
 
   if (authUser.role === "agent") {
-    return "Profil agent";
+    return "Acceder a l'espace agent";
   }
 
-  return "Profil";
+  return "Acceder a l'espace pronostic";
 }
 
 export default function LandingPage({ authUser }: LandingPageProps) {
@@ -148,15 +148,13 @@ export default function LandingPage({ authUser }: LandingPageProps) {
   const AuthIcon = authUser ? UserCircle2 : LogIn;
 
   return (
-    <div className="min-h-screen overflow-hidden bg-[#07110d] text-white">
-      <nav className="sticky top-0 z-50 border-b border-white/10 bg-[#07110d]/80 backdrop-blur-2xl">
+    <div className="min-h-screen overflow-hidden bg-[#11274c] text-white">
+      <nav className="sticky top-0 z-50 border-b border-white/10 bg-[#11274c]/80 backdrop-blur-2xl">
         <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-lime-300/40 to-transparent" />
-        <div className="mx-auto flex h-18 max-w-7xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto flex h-22 max-w-7xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
           <div className="flex min-w-0 items-center gap-3">
             <Link href="/" className="group flex min-w-0 items-center gap-3">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-lime-400 text-[#07110d] shadow-lg shadow-lime-400/20 transition group-hover:bg-lime-300">
-                <Trophy className="h-5 w-5" />
-              </span>
+              <BrandLogo size="md" />
               <span className="min-w-0 truncate text-base font-black uppercase tracking-wide sm:text-lg">
                 MetaPronostic
               </span>
@@ -195,7 +193,7 @@ export default function LandingPage({ authUser }: LandingPageProps) {
             )}
             <Link
               href={profileHref}
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-lime-400 px-4 text-sm font-black text-[#07110d] shadow-lg shadow-lime-400/20 transition hover:bg-lime-300"
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-lime-400 px-4 text-sm font-black text-white shadow-lg shadow-lime-400/20 transition hover:bg-lime-300"
             >
               <AuthIcon className="h-4 w-4" />
               {authLabel}
@@ -218,7 +216,7 @@ export default function LandingPage({ authUser }: LandingPageProps) {
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
-            className="border-t border-white/10 bg-[#07110d]/95 px-4 pb-4 pt-3 backdrop-blur-2xl sm:hidden"
+            className="border-t border-white/10 bg-[#11274c]/95 px-4 pb-4 pt-3 backdrop-blur-2xl sm:hidden"
           >
             <div className="space-y-2">
               {navLinks.map((link) => (
@@ -234,7 +232,7 @@ export default function LandingPage({ authUser }: LandingPageProps) {
               <Link
                 href={profileHref}
                 onClick={() => setIsMenuOpen(false)}
-                className="flex h-11 items-center justify-center gap-2 rounded-lg bg-lime-400 px-4 text-sm font-black text-[#07110d] transition hover:bg-lime-300"
+                className="flex h-11 items-center justify-center gap-2 rounded-lg bg-lime-400 px-4 text-sm font-black text-white transition hover:bg-lime-300"
               >
                 <AuthIcon className="h-4 w-4" />
                 {authLabel}
@@ -299,7 +297,7 @@ export default function LandingPage({ authUser }: LandingPageProps) {
             >
               <Link
                 href="/Dashboard"
-                className="inline-flex items-center justify-center gap-2 rounded-lg bg-lime-400 px-6 py-3 font-black text-[#07110d] transition hover:bg-lime-300"
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-lime-400 px-6 py-3 font-black text-white transition hover:bg-lime-300"
               >
                 Chat avec l'IA
                 <ArrowRight className="h-5 w-5" />
@@ -318,7 +316,7 @@ export default function LandingPage({ authUser }: LandingPageProps) {
             initial={{ opacity: 0, scale: 0.96, y: 18 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ duration: 0.75, ease: "easeOut" }}
-            className="relative min-h-[540px] overflow-hidden rounded-xl border border-white/10 bg-[#08130f] shadow-2xl shadow-lime-950/50"
+            className="relative min-h-[540px] overflow-hidden rounded-xl border border-white/10 bg-[#0d1b33] shadow-2xl shadow-lime-950/50"
           >
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(163,230,53,0.22),transparent_28%),linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.01))]" />
             <motion.div
@@ -364,12 +362,12 @@ export default function LandingPage({ authUser }: LandingPageProps) {
                   }}
                   className={`absolute ${position} z-10 flex h-9 w-9 items-center justify-center rounded-full border border-white/50 ${color} shadow-lg shadow-black/35`}
                 >
-                  <span className="h-3 w-3 rounded-full bg-[#07110d]" />
+                  <span className="h-3 w-3 rounded-full bg-[#11274c]" />
                 </motion.div>
               ))}
             </div>
 
-            <div className="absolute left-5 top-5 rounded-lg border border-white/10 bg-[#07110d]/85 p-4 backdrop-blur-xl sm:left-7 sm:top-7">
+            <div className="absolute left-5 top-5 rounded-lg border border-white/10 bg-[#11274c]/85 p-4 backdrop-blur-xl sm:left-7 sm:top-7">
               <p className="text-xs font-black uppercase text-slate-400">
                 Next fixture
               </p>
@@ -390,7 +388,7 @@ export default function LandingPage({ authUser }: LandingPageProps) {
             </div>
 
             <div className="absolute bottom-5 left-5 right-5 grid gap-3 md:grid-cols-[1fr_0.92fr]">
-              <div className="rounded-lg border border-white/10 bg-[#07110d]/88 p-4 backdrop-blur-xl">
+              <div className="rounded-lg border border-white/10 bg-[#11274c]/88 p-4 backdrop-blur-xl">
                 <div className="mb-3 flex items-center justify-between gap-3">
                   <p className="text-xs font-black uppercase text-slate-400">
                     Timeline IA
@@ -420,7 +418,7 @@ export default function LandingPage({ authUser }: LandingPageProps) {
                 {signals.map((signal) => (
                   <div
                     key={signal.label}
-                    className="rounded-lg border border-white/10 bg-[#07110d]/88 p-4 backdrop-blur-xl"
+                    className="rounded-lg border border-white/10 bg-[#11274c]/88 p-4 backdrop-blur-xl"
                   >
                     <div className="flex items-center justify-between gap-3">
                       <signal.icon className="h-5 w-5 text-cyan-300" />
@@ -439,7 +437,7 @@ export default function LandingPage({ authUser }: LandingPageProps) {
         </div>
       </section>
 
-      <section id="engine" className="border-y border-white/10 bg-[#0a1510] px-4 py-20 sm:px-6 lg:px-8">
+      <section id="engine" className="border-y border-white/10 bg-[#0b1b35] px-4 py-20 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl">
           <motion.div
             initial="initial"
@@ -511,9 +509,7 @@ export default function LandingPage({ authUser }: LandingPageProps) {
       <footer className="border-t border-white/10 px-4 py-10 sm:px-6 lg:px-8">
         <div className="mx-auto flex max-w-7xl flex-col justify-between gap-4 sm:flex-row sm:items-center">
           <Link href="/" className="flex items-center gap-3">
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-lime-400 text-[#07110d]">
-              <Trophy className="h-4 w-4" />
-            </span>
+            <BrandLogo size="sm" />
             <span className="font-black uppercase">MetaPronostic</span>
           </Link>
           <p className="text-sm text-slate-400">
@@ -527,7 +523,7 @@ export default function LandingPage({ authUser }: LandingPageProps) {
         href={whatsappHref}
         target="_blank"
         rel="noreferrer"
-        className="fixed bottom-5 right-5 z-50 inline-flex h-14 w-14 items-center justify-center rounded-xl border border-emerald-200/30 bg-emerald-400 text-[#07110d] shadow-2xl shadow-emerald-500/30 transition hover:scale-105 hover:bg-emerald-300 sm:h-auto sm:w-auto sm:gap-2 sm:px-5 sm:py-4"
+        className="fixed bottom-5 right-5 z-50 inline-flex h-14 w-14 items-center justify-center rounded-xl border border-emerald-200/30 bg-emerald-400 text-[#11274c] shadow-2xl shadow-emerald-500/30 transition hover:scale-105 hover:bg-emerald-300 sm:h-auto sm:w-auto sm:gap-2 sm:px-5 sm:py-4"
         aria-label="Chat WhatsApp MetaPronostic"
       >
         <MessageCircle className="h-6 w-6" />

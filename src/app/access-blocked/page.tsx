@@ -3,10 +3,10 @@ import { Ban, LogOut, Trophy } from "lucide-react";
 
 export default function AccessBlockedPage() {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[#07110d] p-4 text-white">
-      <section className="w-full max-w-lg rounded-xl border border-white/10 bg-[#0b1712] p-6 shadow-2xl shadow-black/30">
+    <main className="flex min-h-screen items-center justify-center bg-[#11274c] p-4 text-white">
+      <section className="w-full max-w-lg rounded-xl border border-white/10 bg-[#0d1b33] p-6 shadow-2xl shadow-black/30">
         <div className="mb-8 flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-red-300 text-[#07110d]">
+          <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-red-300 text-[#11274c]">
             <Ban className="h-6 w-6" />
           </div>
           <div>
@@ -25,7 +25,7 @@ export default function AccessBlockedPage() {
         <div className="mt-6 flex flex-wrap gap-2">
           <Link
             href="/"
-            className="inline-flex items-center justify-center gap-2 rounded-lg bg-lime-400 px-4 py-2 text-sm font-black text-[#07110d] transition hover:bg-lime-300"
+            className="inline-flex items-center justify-center gap-2 rounded-lg bg-lime-400 px-4 py-2 text-sm font-black text-white transition hover:bg-lime-300"
           >
             <Trophy className="h-4 w-4" />
             Accueil
