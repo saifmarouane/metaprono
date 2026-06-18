@@ -37,19 +37,19 @@ Mega at $39/month gives 150,000.
 All plans include all endpoints, all data types, no paywalled features.
 
 Making your first API call
-The base URL for every request is https://v3.football.api-sports.io/. Everything in this API is GET-only, there are no POST, PUT, or DELETE operations anywhere. Authentication happens through a single request header: x-apisports-key set to your API key. That's it. No OAuth, no token exchange, no expiry management.
+The base URL for every request is https://v3.football.api-sports.io/. Everything in this API is GET-only, there are no POST, PUT, or DELETE operations anywhere. Authentication happens through a single request header: xapisportskey set to your API key. That's it. No OAuth, no token exchange, no expiry management.
 
 Let's make our first call. We'll hit /countries, which returns the list of countries the API has league data for. No parameters required, no complexity, just a clean request and a real response to look at.
 
 cURL
 curl --request GET 
   --url 'https://v3.football.api-sports.io/countries' 
-  --header 'x-apisports-key: YOUR_API_KEY_HERE'
+  --header 'xapisportskey: YOUR_API_KEY_HERE'
 JavaScript (Fetch API)
 const response = await fetch('https://v3.football.api-sports.io/countries', {
   method: 'GET',
   headers: {
-    'x-apisports-key': 'YOUR_API_KEY_HERE',
+    'xapisportskey': 'YOUR_API_KEY_HERE',
   },
 });
 
@@ -60,7 +60,7 @@ import requests
 
 url = "https://v3.football.api-sports.io/countries"
 headers = {
-    "x-apisports-key": "YOUR_API_KEY_HERE"
+    "xapisportskey": "YOUR_API_KEY_HERE"
 }
 
 response = requests.get(url, headers=headers)
@@ -107,7 +107,7 @@ enter image description here
 We strongly recommend spending real time here before writing your first integration. You'll see which fields are sometimes null for certain leagues, what paginated responses look like, how parameter combinations interact, and which endpoints need coverage checks before calling. Understanding the response shapes before you start writing parsing logic saves hours of debugging later.
 
 Postman
-If you prefer a dedicated API client, Postman works perfectly. Create a new GET request, paste your full endpoint URL (e.g., https://v3.football.api-sports.io/leagues?country=England&season=2025), go to the Headers tab and add x-apisports-key with your key as the value, then click Send. Postman lets you save requests into organized collections and quickly adjust parameters, particularly useful when you're exploring /fixtures with its many filtering combinations.
+If you prefer a dedicated API client, Postman works perfectly. Create a new GET request, paste your full endpoint URL (e.g., https://v3.football.api-sports.io/leagues?country=England&season=2025), go to the Headers tab and add xapisportskey with your key as the value, then click Send. Postman lets you save requests into organized collections and quickly adjust parameters, particularly useful when you're exploring /fixtures with its many filtering combinations.
 
 enter image description here
 
@@ -174,7 +174,7 @@ You can filter /leagues by country, by type (League or Cup), by season to see co
 # All currently active English competitions
 curl --request GET 
   --url 'https://v3.football.api-sports.io/leagues?country=England¤t=true' 
-  --header 'x-apisports-key: YOUR_API_KEY_HERE'
+  --header 'xapisportskey: YOUR_API_KEY_HERE'
 All league IDs are also browsable on the dashboard at dashboard.api-football.com/soccer/ids/leagues handy when you already know the competition you want.
 
 /leagues/seasons
@@ -220,7 +220,7 @@ Building a livescore feed: Pass live=all and you get every match in progress acr
 # All live matches right now, across all leagues
 curl --request GET 
   --url 'https://v3.football.api-sports.io/fixtures?live=all' 
-  --header 'x-apisports-key: YOUR_API_KEY_HERE'
+  --header 'xapisportskey: YOUR_API_KEY_HERE'
 Showing today's matches: Pass date=2026-03-13 and you get every match scheduled globally for that date. Combine with league to scope it to one competition. Add timezone=Europe/Paris and all kickoff times come back in your users' local zone automatically.
 
 Team schedule and recent results: Pass team=33&next=10 for a team's next 10 upcoming fixtures, or team=33&last=5 for their 5 most recent results. These are the go-to patterns for any team profile or form display. The next parameter is particularly powerful combined with a league filter if you want the team's schedule within a specific competition.
@@ -258,7 +258,7 @@ Also worth noting: when a match is postponed or cancelled, the fixture remains i
 # Premier League fixtures on a specific date
 curl --request GET 
   --url 'https://v3.football.api-sports.io/fixtures?league=39&season=2025&date=2026-03-07' 
-  --header 'x-apisports-key: YOUR_API_KEY_HERE'
+  --header 'xapisportskey: YOUR_API_KEY_HERE'
 /fixtures/headtohead
 When you want historical context between two specific clubs, all the encounters between Liverpool and Manchester City, or Barcelona and Real Madrid across all competitions, this is the endpoint. The only required parameter is h2h, formatted as two team IDs separated by a hyphen: h2h=40-50. The order of the two IDs doesn't matter; you'll get all historical matches regardless of which team was home or away. The response uses the exact same fixture structure as /fixtures.
 
@@ -352,7 +352,7 @@ const response = await fetch(
   'https://v3.football.api-sports.io/standings?league=39&season=2025',
   {
     headers: {
-      'x-apisports-key': 'YOUR_API_KEY_HERE',
+      'xapisportskey': 'YOUR_API_KEY_HERE',
     },
   }
 );
@@ -402,7 +402,7 @@ async function getAllPlayers(leagueId, season, apiKey) {
       `https://v3.football.api-sports.io/players?league=${leagueId}&season=${season}&page=${page}`,
       {
         headers: {
-          'x-apisports-key': apiKey,
+          'xapisportskey': apiKey,
         },
       }
     );
@@ -426,7 +426,7 @@ The key thing to understand: these don't just return a headline number. Each of 
 # Premier League top scorers, 2025 season
 curl --request GET 
   --url 'https://v3.football.api-sports.io/players/topscorers?league=39&season=2025' 
-  --header 'x-apisports-key: YOUR_API_KEY_HERE'
+  --header 'xapisportskey: YOUR_API_KEY_HERE'
 /players/squads
 If you just need to know who's on a team's current registered roster, no season stats needed /players/squads is the quickest path. Pass a team ID (required; no season parameter available here) and you get the full squad:
 

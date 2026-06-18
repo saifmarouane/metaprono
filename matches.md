@@ -29,7 +29,7 @@ https://v3.football.api-sports.io
 Header d’authentification :
 
 ```http
-x-apisports-key: VOTRE_CLE_API
+xapisportskey: VOTRE_CLE_API
 ```
 
 Endpoints utilisés :
@@ -139,7 +139,7 @@ async function apiGet(endpoint, params = {}) {
   const response = await fetch(url, {
     method: "GET",
     headers: {
-      "x-apisports-key": API_KEY,
+      "xapisportskey": API_KEY,
     },
   });
 
@@ -674,7 +674,7 @@ Remplacer les IDs et la clé API.
 ```bash
 curl --request GET \
   --url "https://v3.football.api-sports.io/fixtures/headtohead?h2h=MOROCCO_ID-BRAZIL_ID&timezone=Africa%2FCasablanca" \
-  --header "x-apisports-key: VOTRE_CLE_API"
+  --header "xapisportskey: VOTRE_CLE_API"
 ```
 
 ---
@@ -732,7 +732,7 @@ Pour réduire la consommation :
 ```js
 fetch("https://v3.football.api-sports.io/fixtures", {
   headers: {
-    "x-apisports-key": "CLE_VISIBLE"
+    "xapisportskey": "CLE_VISIBLE"
   }
 });
 ```

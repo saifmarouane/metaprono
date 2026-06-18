@@ -648,7 +648,7 @@ export function AgentWorkspace({ user }: AgentWorkspaceProps) {
               </div>
               <p className={`mb-5 text-sm leading-6 ${classes.muted}`}>
                 La cle reste cote serveur. L'agent envoie seulement les filtres,
-                puis Next.js ajoute le header x-apisports-key.
+                puis Next.js ajoute le header xapisportskey.
               </p>
 
               <div className="grid gap-3 md:grid-cols-[1fr_1fr_auto]">

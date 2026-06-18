@@ -65,11 +65,11 @@ function getApiSportsKey(): string {
     process.env.APISPORTS_KEY ??
     process.env.API_SPORTS_KEY ??
     process.env.X_APISPORTS_KEY ??
-    process.env["x-apisports-key"];
+    process.env["xapisportskey"];
 
   if (!key) {
     throw new Error(
-      "API-FOOTBALL key is not set. Use APISPORTS_KEY or x-apisports-key in .env."
+      "API-FOOTBALL key is not set. Use APISPORTS_KEY or xapisportskey in .env."
     );
   }
 
@@ -90,7 +90,7 @@ export async function apiFootballGet<T>(
 
   const response = await fetch(url, {
     headers: {
-      "x-apisports-key": getApiSportsKey(),
+      "xapisportskey": getApiSportsKey(),
     },
     cache: "no-store",
   });
