@@ -91,7 +91,7 @@ export default function LandingPage() {
             href="/Dashboard"
             className="inline-flex items-center gap-2 rounded-lg bg-lime-400 px-4 py-2 text-sm font-bold text-[#07110d] transition hover:bg-lime-300"
           >
-            Dashboard
+            Chat IA
             <ArrowRight className="h-4 w-4" />
           </Link>
           <Link
@@ -150,7 +150,7 @@ export default function LandingPage() {
                 href="/Dashboard"
                 className="inline-flex items-center justify-center gap-2 rounded-lg bg-lime-400 px-6 py-3 font-black text-[#07110d] transition hover:bg-lime-300"
               >
-                Lancer l'analyse
+                Chat avec l'IA
                 <ArrowRight className="h-5 w-5" />
               </Link>
               <a

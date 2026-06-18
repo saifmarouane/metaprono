@@ -18,6 +18,10 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   const authenticatedUser = await getAuthenticatedUser();
 
   if (authenticatedUser) {
+    if (authenticatedUser.role === "user") {
+      redirect("/Dashboard");
+    }
+
     redirect(
       authenticatedUser.role === "agent" && next.startsWith("/admin")
         ? "/agent"

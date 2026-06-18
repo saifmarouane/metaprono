@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { queryRelevantDocuments } from "@/lib/pinecone";
 import { getMongoContext } from "@/lib/mongodb-context";
+import { getCurrentChatAccess } from "@/lib/chat-users";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const VECTOR_DIMENSION = 1024;
@@ -25,6 +26,24 @@ function placeholderEmbed(text: string): number[] {
 }
 
 export async function POST(req: NextRequest) {
+  const access = await getCurrentChatAccess();
+  if (!access.allowed) {
+    return new Response(
+      JSON.stringify({
+        error:
+          access.reason === "pending"
+            ? "Compte en attente de validation admin"
+            : access.reason === "blocked"
+              ? "Compte bloque"
+              : "Authentification requise",
+      }),
+      {
+        status: access.status,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
+  }
+
   if (!GEMINI_API_KEY) {
     return new Response(
       JSON.stringify({ error: "GEMINI_API_KEY is not configured" }),

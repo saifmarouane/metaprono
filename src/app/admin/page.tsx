@@ -11,6 +11,8 @@ import { getMongoAdminSnapshot } from "@/lib/mongodb-admin";
 import { isAdminAuthenticated } from "@/lib/admin-auth";
 import { redirect } from "next/navigation";
 import { AdminInsertForm } from "@/components/admin/AdminInsertForm";
+import { AdminUsersPanel } from "@/components/admin/AdminUsersPanel";
+import { listChatUsers } from "@/lib/chat-users";
 
 export const dynamic = "force-dynamic";
 
@@ -71,6 +73,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
     params?.collection,
     params?.limit ? Number(params.limit) : undefined
   );
+  const chatUsers = await listChatUsers();
   const visibleColumns = getVisibleColumns(snapshot.documents);
   const selectedCount =
     snapshot.collections.find(
@@ -146,6 +149,8 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
             </p>
           </div>
         </section>
+
+        <AdminUsersPanel users={chatUsers} />
 
         <div className="grid gap-5 lg:grid-cols-[460px_1fr]">
           <aside className="rounded-xl border border-white/10 bg-[#0b1712] p-4">

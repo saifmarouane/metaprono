@@ -1,8 +1,12 @@
 import Link from "next/link";
 import { MetaPronosticProvider } from "@/contexts/metapronostic-context";
-import { Activity, ChevronLeft, Trophy } from "lucide-react";
+import { Activity, ChevronLeft, LogOut, Trophy } from "lucide-react";
+import { getCurrentChatAccess } from "@/lib/chat-users";
+import { redirect } from "next/navigation";
 
-export default function DashboardLayout({
+export const dynamic = "force-dynamic";
+
+export default async function DashboardLayout({
   chat,
   explorer,
 }: {
@@ -10,6 +14,12 @@ export default function DashboardLayout({
   chat: React.ReactNode;
   explorer: React.ReactNode;
 }) {
+  const access = await getCurrentChatAccess();
+
+  if (!access.allowed) {
+    redirect(access.redirectTo);
+  }
+
   return (
     <MetaPronosticProvider>
       <div className="min-h-screen bg-[#07110d] p-4 text-white sm:p-6">
@@ -28,6 +38,11 @@ export default function DashboardLayout({
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
+            {access.user && (
+              <span className="inline-flex items-center justify-center rounded-lg border border-white/10 bg-white/[0.04] px-4 py-2 text-sm font-bold text-slate-200">
+                {access.user.name}
+              </span>
+            )}
             <Link
               href="/admin"
               className="inline-flex items-center justify-center rounded-lg bg-lime-400 px-4 py-2 text-sm font-black text-[#07110d] transition hover:bg-lime-300"
@@ -47,6 +62,15 @@ export default function DashboardLayout({
               <ChevronLeft className="h-4 w-4" />
               Accueil
             </Link>
+            <form action="/api/auth/logout" method="post">
+              <button
+                type="submit"
+                className="inline-flex items-center justify-center gap-2 rounded-lg border border-red-400/20 bg-red-400/10 px-4 py-2 text-sm font-bold text-red-100 transition hover:bg-red-400/20"
+              >
+                <LogOut className="h-4 w-4" />
+                Logout
+              </button>
+            </form>
           </div>
         </div>
         <div className="mb-5 grid gap-3 md:grid-cols-4">

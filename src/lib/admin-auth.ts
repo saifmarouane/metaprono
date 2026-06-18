@@ -2,14 +2,15 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
 
 export const ADMIN_SESSION_COOKIE = "metapronostic_admin_session";
-export type AuthRole = "admin" | "agent";
+export type AuthRole = "admin" | "agent" | "user";
 
 const SESSION_MAX_AGE_SECONDS = 60 * 60 * 8;
 export const ADMIN_SESSION_MAX_AGE_SECONDS = SESSION_MAX_AGE_SECONDS;
 
-type AuthUser = {
+export type AuthUser = {
   email: string;
   role: AuthRole;
+  userId?: string;
 };
 
 type SessionPayload = AuthUser & {
@@ -73,7 +74,9 @@ function decodePayload(value: string): SessionPayload | null {
     if (
       typeof decoded.email !== "string" ||
       typeof decoded.issuedAt !== "number" ||
-      (decoded.role !== "admin" && decoded.role !== "agent")
+      (decoded.role !== "admin" &&
+        decoded.role !== "agent" &&
+        decoded.role !== "user")
     ) {
       return null;
     }
@@ -81,6 +84,7 @@ function decodePayload(value: string): SessionPayload | null {
     return {
       email: decoded.email,
       role: decoded.role,
+      userId: typeof decoded.userId === "string" ? decoded.userId : undefined,
       issuedAt: decoded.issuedAt,
     };
   } catch {
@@ -130,6 +134,7 @@ export function createSessionValue(user: AuthUser): string {
   const payload = encodePayload({
     email: user.email,
     role: user.role,
+    userId: user.userId,
     issuedAt: Date.now(),
   });
   const signature = signSession(payload);
@@ -184,6 +189,14 @@ export async function getAuthenticatedUser(): Promise<AuthUser | null> {
     safeEqual(decodedPayload.email, getAgentEmail())
   ) {
     return { email: decodedPayload.email, role: "agent" };
+  }
+
+  if (decodedPayload.role === "user" && decodedPayload.userId) {
+    return {
+      email: decodedPayload.email,
+      role: "user",
+      userId: decodedPayload.userId,
+    };
   }
 
   return null;
