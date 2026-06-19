@@ -6,6 +6,7 @@ import {
 } from "@/lib/api-football";
 
 const UPCOMING_STATUSES = new Set(["TBD", "NS"]);
+const FINISHED_STATUSES = new Set(["FT", "AET", "PEN"]);
 
 function getDateInTimezone(timezone: string): string {
   const parts = new Intl.DateTimeFormat("en-CA", {
@@ -85,9 +86,12 @@ export async function GET() {
 
     const live = sortByDate(liveResult.response.map(formatFixture));
     const todayFixtures = sortByDate(todayResult.response.map(formatFixture));
-    const nextToday = todayFixtures.filter((fixture) =>
+    const upcomingToday = todayFixtures.filter((fixture) =>
       UPCOMING_STATUSES.has(fixture.status?.short ?? "")
     );
+    const finishedToday = todayFixtures
+      .filter((fixture) => FINISHED_STATUSES.has(fixture.status?.short ?? ""))
+      .reverse();
 
     const competitionMap = new Map<
       string,
@@ -159,10 +163,14 @@ export async function GET() {
       summary: {
         live: live.length,
         today: todayFixtures.length,
-        nextToday: nextToday.length,
+        finishedToday: finishedToday.length,
+        upcomingToday: upcomingToday.length,
+        nextToday: upcomingToday.length,
         competitions: competitions.length,
       },
       live,
+      finishedToday: finishedToday.slice(0, 20),
+      upcomingToday: upcomingToday.slice(0, 20),
       competitions,
     });
   } catch (error) {

@@ -140,6 +140,95 @@ export type ApiFootballInjury = {
   league?: ApiFootballFixture["league"];
 };
 
+export type ApiFootballTeamStatistics = {
+  league?: {
+    id?: number;
+    name?: string;
+    country?: string;
+    logo?: string;
+    flag?: string | null;
+    season?: number;
+  };
+  team?: {
+    id?: number;
+    name?: string;
+    logo?: string;
+  };
+  form?: string | null;
+  fixtures?: {
+    played?: { home?: number; away?: number; total?: number };
+    wins?: { home?: number; away?: number; total?: number };
+    draws?: { home?: number; away?: number; total?: number };
+    loses?: { home?: number; away?: number; total?: number };
+  };
+  goals?: {
+    for?: {
+      total?: { home?: number; away?: number; total?: number };
+      average?: { home?: string; away?: string; total?: string };
+    };
+    against?: {
+      total?: { home?: number; away?: number; total?: number };
+      average?: { home?: string; away?: string; total?: string };
+    };
+  };
+  biggest?: unknown;
+  clean_sheet?: { home?: number; away?: number; total?: number };
+  failed_to_score?: { home?: number; away?: number; total?: number };
+  penalty?: unknown;
+  lineups?: Array<{
+    formation?: string;
+    played?: number;
+  }>;
+};
+
+export type ApiFootballStanding = {
+  league?: {
+    id?: number;
+    name?: string;
+    country?: string;
+    season?: number;
+    standings?: Array<
+      Array<{
+        rank?: number;
+        team?: {
+          id?: number;
+          name?: string;
+          logo?: string;
+        };
+        points?: number;
+        goalsDiff?: number;
+        group?: string;
+        form?: string;
+        status?: string;
+        description?: string | null;
+        all?: {
+          played?: number;
+          win?: number;
+          draw?: number;
+          lose?: number;
+          goals?: { for?: number; against?: number };
+        };
+      }>
+    >;
+  };
+};
+
+export type ApiFootballSquad = {
+  team?: {
+    id?: number;
+    name?: string;
+    logo?: string;
+  };
+  players?: Array<{
+    id?: number;
+    name?: string;
+    age?: number;
+    number?: number | null;
+    position?: string;
+    photo?: string;
+  }>;
+};
+
 function getApiSportsKey(): string {
   const key =
     process.env.APISPORTS_KEY ??
@@ -247,4 +336,26 @@ export async function fetchApiFootballInjuries(params: {
   timezone?: string;
 }): Promise<ApiFootballResponse<ApiFootballInjury>> {
   return apiFootballGet<ApiFootballInjury>("/injuries", params);
+}
+
+export async function fetchApiFootballTeamStatistics(params: {
+  league: number;
+  season: number;
+  team: number;
+}): Promise<ApiFootballResponse<ApiFootballTeamStatistics>> {
+  return apiFootballGet<ApiFootballTeamStatistics>("/teams/statistics", params);
+}
+
+export async function fetchApiFootballStandings(params: {
+  league: number;
+  season: number;
+  team?: number;
+}): Promise<ApiFootballResponse<ApiFootballStanding>> {
+  return apiFootballGet<ApiFootballStanding>("/standings", params);
+}
+
+export async function fetchApiFootballSquads(
+  team: number
+): Promise<ApiFootballResponse<ApiFootballSquad>> {
+  return apiFootballGet<ApiFootballSquad>("/players/squads", { team });
 }

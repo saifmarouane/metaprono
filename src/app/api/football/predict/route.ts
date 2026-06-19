@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getAuthenticatedUser } from "@/lib/admin-auth";
 import { getCurrentChatAccess } from "@/lib/chat-users";
+import { recordUserAction } from "@/lib/user-actions";
 import {
   type ApiFootballFixture,
   type ApiFootballTeam,
@@ -7,6 +9,10 @@ import {
   fetchApiFootballInjuries,
   fetchApiFootballLineups,
   fetchApiFootballPredictions,
+  fetchApiFootballSquads,
+  fetchApiFootballStandings,
+  fetchApiFootballTeamStatistics,
+  fetchApiFootballFixtures,
   searchApiFootballTeams,
 } from "@/lib/api-football";
 
@@ -148,10 +154,197 @@ function parsePercent(value?: string | null): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+function getDateInTimezone(timezone: string): string {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: timezone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+
+  const year = parts.find((part) => part.type === "year")?.value;
+  const month = parts.find((part) => part.type === "month")?.value;
+  const day = parts.find((part) => part.type === "day")?.value;
+
+  return `${year}-${month}-${day}`;
+}
+
+function summarizeRecentForm(
+  teamId: number,
+  fixtures: ReturnType<typeof formatFixture>[]
+) {
+  let wins = 0;
+  let draws = 0;
+  let losses = 0;
+  let goalsFor = 0;
+  let goalsAgainst = 0;
+
+  for (const fixture of fixtures) {
+    const homeGoals = fixture.goals.home;
+    const awayGoals = fixture.goals.away;
+
+    if (homeGoals == null || awayGoals == null) {
+      continue;
+    }
+
+    const isHome = fixture.home.id === teamId;
+    const teamGoals = isHome ? homeGoals : awayGoals;
+    const opponentGoals = isHome ? awayGoals : homeGoals;
+
+    goalsFor += teamGoals;
+    goalsAgainst += opponentGoals;
+
+    if (teamGoals > opponentGoals) {
+      wins += 1;
+    } else if (teamGoals === opponentGoals) {
+      draws += 1;
+    } else {
+      losses += 1;
+    }
+  }
+
+  return {
+    played: wins + draws + losses,
+    wins,
+    draws,
+    losses,
+    goalsFor,
+    goalsAgainst,
+  };
+}
+
+function extractStanding(teamId: number, standingsResponse: unknown) {
+  const standingGroups =
+    (standingsResponse as {
+      response?: Array<{
+        league?: {
+          standings?: Array<Array<{ team?: { id?: number } }>>;
+        };
+      }>;
+    })?.response?.[0]?.league?.standings ?? [];
+
+  return standingGroups.flat().find((standing) => standing.team?.id === teamId) ?? null;
+}
+
+async function getTeamAnalytics(params: {
+  team: Awaited<ReturnType<typeof findTeam>>;
+  leagueId: number | null;
+  season: number | null;
+  timezone: string;
+}) {
+  const today = getDateInTimezone(params.timezone);
+
+  const [
+    recentResult,
+    squadResult,
+    injuriesResult,
+    statisticsResult,
+    standingsResult,
+  ] = await Promise.allSettled([
+    fetchApiFootballFixtures({
+      team: params.team.id,
+      last: 10,
+      timezone: params.timezone,
+    }),
+    fetchApiFootballSquads(params.team.id),
+    fetchApiFootballInjuries({
+      team: params.team.id,
+      date: today,
+      timezone: params.timezone,
+    }),
+    params.leagueId && params.season
+      ? fetchApiFootballTeamStatistics({
+          team: params.team.id,
+          league: params.leagueId,
+          season: params.season,
+        })
+      : Promise.resolve(null),
+    params.leagueId && params.season
+      ? fetchApiFootballStandings({
+          team: params.team.id,
+          league: params.leagueId,
+          season: params.season,
+        })
+      : Promise.resolve(null),
+  ]);
+
+  const recentMatches =
+    recentResult.status === "fulfilled"
+      ? sortByDate(recentResult.value.response.map(formatFixture)).reverse()
+      : [];
+  const squad =
+    squadResult.status === "fulfilled" ? squadResult.value.response[0] : null;
+  const injuries =
+    injuriesResult.status === "fulfilled" ? injuriesResult.value.response : [];
+  const statistics =
+    statisticsResult.status === "fulfilled" && statisticsResult.value
+      ? statisticsResult.value.response
+      : [];
+  const standingsPayload =
+    standingsResult.status === "fulfilled" && standingsResult.value
+      ? standingsResult.value
+      : null;
+
+  return {
+    team: params.team,
+    context: {
+      leagueId: params.leagueId,
+      season: params.season,
+      injuryDate: today,
+    },
+    teamStatistics: statistics[0] ?? null,
+    standing: standingsPayload
+      ? extractStanding(params.team.id, standingsPayload)
+      : null,
+    recent: {
+      summary: summarizeRecentForm(params.team.id, recentMatches),
+      matches: recentMatches.slice(0, 5),
+    },
+    squad: {
+      count: squad?.players?.length ?? 0,
+      players: (squad?.players ?? []).slice(0, 24),
+    },
+    injuries,
+    warnings: {
+      recent:
+        recentResult.status === "rejected"
+          ? recentResult.reason instanceof Error
+            ? recentResult.reason.message
+            : "Recent fixtures unavailable"
+          : null,
+      squad:
+        squadResult.status === "rejected"
+          ? squadResult.reason instanceof Error
+            ? squadResult.reason.message
+            : "Squad unavailable"
+          : null,
+      injuries:
+        injuriesResult.status === "rejected"
+          ? injuriesResult.reason instanceof Error
+            ? injuriesResult.reason.message
+            : "Team injuries unavailable"
+          : null,
+      teamStatistics:
+        statisticsResult.status === "rejected"
+          ? statisticsResult.reason instanceof Error
+            ? statisticsResult.reason.message
+            : "Team statistics unavailable"
+          : null,
+      standings:
+        standingsResult.status === "rejected"
+          ? standingsResult.reason instanceof Error
+            ? standingsResult.reason.message
+            : "Standings unavailable"
+          : null,
+    },
+  };
+}
+
 export async function GET(req: NextRequest) {
   const access = await getCurrentChatAccess();
+  const sessionUser = await getAuthenticatedUser();
 
-  if (!access.allowed) {
+  if (!access.allowed || !sessionUser) {
     return NextResponse.json(
       { ok: false, error: "Unauthorized" },
       { status: access.status }
@@ -191,17 +384,37 @@ export async function GET(req: NextRequest) {
     );
     const targetFixture = scheduledHeadToHead[0] ?? headToHead.at(-1) ?? null;
     const fixtureId = targetFixture?.fixtureId ?? null;
+    const contextLeagueId = targetFixture?.competition.id ?? null;
+    const contextSeason = targetFixture?.competition.season ?? null;
 
-    const [predictionResult, lineupResult, injuryResult] = fixtureId
-      ? await Promise.allSettled([
-          fetchApiFootballPredictions(fixtureId),
-          fetchApiFootballLineups(fixtureId),
-          fetchApiFootballInjuries({ fixture: fixtureId, timezone }),
-        ])
-      : [null, null, null];
+    const [
+      predictionResult,
+      lineupResult,
+      injuryResult,
+      firstTeamAnalyticsResult,
+      secondTeamAnalyticsResult,
+    ] = await Promise.allSettled([
+      fixtureId ? fetchApiFootballPredictions(fixtureId) : Promise.resolve(null),
+      fixtureId ? fetchApiFootballLineups(fixtureId) : Promise.resolve(null),
+      fixtureId
+        ? fetchApiFootballInjuries({ fixture: fixtureId, timezone })
+        : Promise.resolve(null),
+      getTeamAnalytics({
+        team: firstTeam,
+        leagueId: contextLeagueId,
+        season: contextSeason,
+        timezone,
+      }),
+      getTeamAnalytics({
+        team: secondTeam,
+        leagueId: contextLeagueId,
+        season: contextSeason,
+        timezone,
+      }),
+    ]);
 
     const prediction =
-      predictionResult?.status === "fulfilled"
+      predictionResult.status === "fulfilled" && predictionResult.value
         ? predictionResult.value.response[0]
         : null;
     const percent = prediction?.predictions?.percent;
@@ -218,7 +431,7 @@ export async function GET(req: NextRequest) {
       source: percent ? "api-football-predictions" : fallback.source,
     };
 
-    return NextResponse.json({
+    const responsePayload = {
       ok: true,
       generatedAt: new Date().toISOString(),
       timezone,
@@ -231,33 +444,86 @@ export async function GET(req: NextRequest) {
       advice: prediction?.predictions?.advice ?? null,
       winner: prediction?.predictions?.winner ?? null,
       lineups:
-        lineupResult?.status === "fulfilled" ? lineupResult.value.response : [],
+        lineupResult.status === "fulfilled" && lineupResult.value
+          ? lineupResult.value.response
+          : [],
       injuries:
-        injuryResult?.status === "fulfilled" ? injuryResult.value.response : [],
+        injuryResult.status === "fulfilled" && injuryResult.value
+          ? injuryResult.value.response
+          : [],
+      teamAnalytics: {
+        teamA:
+          firstTeamAnalyticsResult.status === "fulfilled"
+            ? firstTeamAnalyticsResult.value
+            : null,
+        teamB:
+          secondTeamAnalyticsResult.status === "fulfilled"
+            ? secondTeamAnalyticsResult.value
+            : null,
+      },
       headToHead: {
         count: playedHeadToHead.length,
         matches: playedHeadToHead.slice(-8).reverse(),
       },
       warnings: {
         prediction:
-          predictionResult && predictionResult.status === "rejected"
+          predictionResult.status === "rejected"
             ? predictionResult.reason instanceof Error
               ? predictionResult.reason.message
               : "Prediction unavailable"
             : null,
         lineups:
-          lineupResult && lineupResult.status === "rejected"
+          lineupResult.status === "rejected"
             ? lineupResult.reason instanceof Error
               ? lineupResult.reason.message
               : "Lineups unavailable"
             : null,
         injuries:
-          injuryResult && injuryResult.status === "rejected"
+          injuryResult.status === "rejected"
             ? injuryResult.reason instanceof Error
               ? injuryResult.reason.message
               : "Injuries unavailable"
             : null,
+        teamAAnalytics:
+          firstTeamAnalyticsResult.status === "rejected"
+            ? firstTeamAnalyticsResult.reason instanceof Error
+              ? firstTeamAnalyticsResult.reason.message
+              : "Team A analytics unavailable"
+            : null,
+        teamBAnalytics:
+          secondTeamAnalyticsResult.status === "rejected"
+            ? secondTeamAnalyticsResult.reason instanceof Error
+              ? secondTeamAnalyticsResult.reason.message
+              : "Team B analytics unavailable"
+            : null,
       },
+    };
+
+    let actionId: string | null = null;
+    let actionSaveError: string | null = null;
+
+    try {
+      actionId = await recordUserAction({
+        user: sessionUser,
+        actionType: "football_prediction",
+        label: `${firstTeam.name} vs ${secondTeam.name}`,
+        payload: {
+          requestedTeams: {
+            teamA,
+            teamB,
+          },
+          result: responsePayload,
+        },
+      });
+    } catch (error) {
+      actionSaveError =
+        error instanceof Error ? error.message : "Action history save failed";
+    }
+
+    return NextResponse.json({
+      ...responsePayload,
+      actionId,
+      actionSaveError,
     });
   } catch (error) {
     return NextResponse.json(

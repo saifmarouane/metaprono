@@ -257,7 +257,7 @@ export default function LandingPage({ authUser }: LandingPageProps) {
         )}
       </nav>
 
-      <section className="relative min-h-[calc(100vh-4rem)] px-4 py-8 sm:px-6 lg:px-8">
+      <section className="relative min-h-[calc(100dvh-4rem)] px-4 py-7 sm:px-6 sm:py-8 lg:px-8">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_22%_16%,rgba(132,204,22,0.18),transparent_28%),radial-gradient(circle_at_82%_22%,rgba(34,211,238,0.12),transparent_30%),linear-gradient(135deg,rgba(34,197,94,0.12),transparent_38%,rgba(34,211,238,0.08)_72%,transparent)]" />
         <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.025)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.025)_1px,transparent_1px)] bg-[size:48px_48px]" />
         <div className="relative mx-auto grid max-w-7xl items-center gap-10 lg:grid-cols-[0.86fr_1.14fr]">
@@ -277,14 +277,14 @@ export default function LandingPage({ authUser }: LandingPageProps) {
             <motion.h1
               variants={fadeInUp}
               custom={1}
-              className="max-w-4xl text-5xl font-black leading-[0.98] tracking-normal text-white sm:text-6xl lg:text-7xl"
+              className="max-w-4xl text-4xl font-black leading-[1.02] tracking-normal text-white sm:text-6xl lg:text-7xl"
             >
               MetaPronostic
             </motion.h1>
             <motion.p
               variants={fadeInUp}
               custom={2}
-              className="mt-6 max-w-2xl text-lg leading-8 text-slate-300 sm:text-xl"
+              className="mt-5 max-w-2xl text-base leading-7 text-slate-300 sm:mt-6 sm:text-xl sm:leading-8"
             >
               Analyse les matchs, détecte les signaux forts et interroge ta base
               football avec une IA connectée aux fixtures, classements, joueurs,
@@ -316,7 +316,7 @@ export default function LandingPage({ authUser }: LandingPageProps) {
             initial={{ opacity: 0, scale: 0.96, y: 18 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ duration: 0.75, ease: "easeOut" }}
-            className="relative min-h-[540px] overflow-hidden rounded-xl border border-white/10 bg-[#0d1b33] shadow-2xl shadow-lime-950/50"
+            className="relative min-h-[430px] overflow-hidden rounded-xl border border-white/10 bg-[#0d1b33] shadow-2xl shadow-lime-950/50 sm:min-h-[540px]"
           >
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(163,230,53,0.22),transparent_28%),linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.01))]" />
             <motion.div
@@ -325,7 +325,7 @@ export default function LandingPage({ authUser }: LandingPageProps) {
               className="absolute inset-x-8 top-8 h-28 rounded-full bg-lime-300/10 blur-3xl"
             />
 
-            <div className="absolute left-1/2 top-16 h-[390px] w-[86%] -translate-x-1/2 overflow-hidden rounded-[30px] border-2 border-lime-200/60 bg-[linear-gradient(90deg,rgba(34,197,94,0.32)_0_10%,rgba(22,101,52,0.28)_10%_20%,rgba(34,197,94,0.32)_20%_30%,rgba(22,101,52,0.28)_30%_40%,rgba(34,197,94,0.32)_40%_50%,rgba(22,101,52,0.28)_50%_60%,rgba(34,197,94,0.32)_60%_70%,rgba(22,101,52,0.28)_70%_80%,rgba(34,197,94,0.32)_80%_90%,rgba(22,101,52,0.28)_90%)] shadow-2xl shadow-black/30">
+            <div className="absolute left-1/2 top-20 h-[260px] w-[88%] -translate-x-1/2 overflow-hidden rounded-[22px] border-2 border-lime-200/60 bg-[linear-gradient(90deg,rgba(34,197,94,0.32)_0_10%,rgba(22,101,52,0.28)_10%_20%,rgba(34,197,94,0.32)_20%_30%,rgba(22,101,52,0.28)_30%_40%,rgba(34,197,94,0.32)_40%_50%,rgba(22,101,52,0.28)_50%_60%,rgba(34,197,94,0.32)_60%_70%,rgba(22,101,52,0.28)_70%_80%,rgba(34,197,94,0.32)_80%_90%,rgba(22,101,52,0.28)_90%)] shadow-2xl shadow-black/30 sm:top-16 sm:h-[390px] sm:rounded-[30px]">
               <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.04)_1px,transparent_1px)] bg-[size:34px_34px]" />
               <div className="absolute left-1/2 top-0 h-full w-[2px] -translate-x-1/2 bg-lime-100/65" />
               <div className="absolute left-1/2 top-1/2 h-28 w-28 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-lime-100/65" />
@@ -367,28 +367,28 @@ export default function LandingPage({ authUser }: LandingPageProps) {
               ))}
             </div>
 
-            <div className="absolute left-5 top-5 rounded-lg border border-white/10 bg-[#11274c]/85 p-4 backdrop-blur-xl sm:left-7 sm:top-7">
+            <div className="absolute left-3 top-3 rounded-lg border border-white/10 bg-[#11274c]/85 p-3 backdrop-blur-xl sm:left-7 sm:top-7 sm:p-4">
               <p className="text-xs font-black uppercase text-slate-400">
                 Next fixture
               </p>
               <div className="mt-2 flex items-center gap-3">
                 <Goal className="h-5 w-5 text-lime-300" />
-                <p className="text-lg font-black text-white">PSG vs OM</p>
+                <p className="text-base font-black text-white sm:text-lg">PSG vs OM</p>
               </div>
               <p className="mt-1 text-sm font-bold text-lime-300">
                 Ligue 1 · Live model
               </p>
             </div>
 
-            <div className="absolute right-5 top-5 rounded-lg border border-cyan-300/20 bg-cyan-300/10 p-4 backdrop-blur-xl sm:right-7 sm:top-7">
+            <div className="absolute right-3 top-3 rounded-lg border border-cyan-300/20 bg-cyan-300/10 p-3 backdrop-blur-xl sm:right-7 sm:top-7 sm:p-4">
               <p className="text-xs font-black uppercase text-cyan-100/80">
                 Confidence
               </p>
-              <p className="mt-1 text-3xl font-black text-cyan-100">78%</p>
+              <p className="mt-1 text-2xl font-black text-cyan-100 sm:text-3xl">78%</p>
             </div>
 
-            <div className="absolute bottom-5 left-5 right-5 grid gap-3 md:grid-cols-[1fr_0.92fr]">
-              <div className="rounded-lg border border-white/10 bg-[#11274c]/88 p-4 backdrop-blur-xl">
+            <div className="absolute bottom-3 left-3 right-3 grid gap-3 sm:bottom-5 sm:left-5 sm:right-5 md:grid-cols-[1fr_0.92fr]">
+              <div className="rounded-lg border border-white/10 bg-[#11274c]/88 p-3 backdrop-blur-xl sm:p-4">
                 <div className="mb-3 flex items-center justify-between gap-3">
                   <p className="text-xs font-black uppercase text-slate-400">
                     Timeline IA
@@ -418,7 +418,7 @@ export default function LandingPage({ authUser }: LandingPageProps) {
                 {signals.map((signal) => (
                   <div
                     key={signal.label}
-                    className="rounded-lg border border-white/10 bg-[#11274c]/88 p-4 backdrop-blur-xl"
+                    className="rounded-lg border border-white/10 bg-[#11274c]/88 p-3 backdrop-blur-xl sm:p-4"
                   >
                     <div className="flex items-center justify-between gap-3">
                       <signal.icon className="h-5 w-5 text-cyan-300" />

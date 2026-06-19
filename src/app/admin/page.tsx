@@ -11,8 +11,10 @@ import { isAdminAuthenticated } from "@/lib/admin-auth";
 import { redirect } from "next/navigation";
 import { AdminInsertForm } from "@/components/admin/AdminInsertForm";
 import { AdminUsersPanel } from "@/components/admin/AdminUsersPanel";
+import { AdminActionsPanel } from "@/components/admin/AdminActionsPanel";
 import { listChatUsers } from "@/lib/chat-users";
 import { BrandLogo } from "@/components/BrandLogo";
+import { listAllUserActions, type PublicUserAction } from "@/lib/user-actions";
 
 export const dynamic = "force-dynamic";
 
@@ -74,6 +76,21 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
     params?.limit ? Number(params.limit) : undefined
   );
   const chatUsers = await listChatUsers();
+  let userActions: PublicUserAction[] = [];
+  let userActionsError: string | null = null;
+
+  try {
+    userActions = await listAllUserActions({
+      actionType: "football_prediction",
+      limit: 50,
+    });
+  } catch (error) {
+    userActionsError =
+      error instanceof Error
+        ? error.message
+        : "Impossible de charger l'historique utilisateur.";
+  }
+
   const visibleColumns = getVisibleColumns(snapshot.documents);
   const selectedCount =
     snapshot.collections.find(
@@ -149,6 +166,8 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         </section>
 
         <AdminUsersPanel users={chatUsers} />
+
+        <AdminActionsPanel actions={userActions} error={userActionsError} />
 
         <div className="grid gap-5 lg:grid-cols-[460px_1fr]">
           <aside className="rounded-xl border border-white/10 bg-[#0d1b33] p-4">

@@ -96,7 +96,71 @@ export function AdminUsersPanel({ users }: AdminUsersPanelProps) {
           Aucun utilisateur chat n'a encore cree de compte.
         </div>
       ) : (
-        <div className="overflow-x-auto">
+        <>
+        <div className="grid gap-3 p-4 md:hidden">
+          {users.map((user) => {
+            const status = STATUS_CONFIG[user.status];
+            const StatusIcon = status.icon;
+            const isBusy = busyUserId === user.id;
+
+            return (
+              <article
+                key={user.id}
+                className="rounded-lg border border-white/10 bg-white/[0.04] p-4"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate font-black text-white">{user.name}</p>
+                    <p className="truncate text-xs text-slate-400">{user.email}</p>
+                  </div>
+                  <span
+                    className={`inline-flex shrink-0 items-center gap-2 rounded-lg border px-2 py-1 text-xs font-black ${status.className}`}
+                  >
+                    <StatusIcon className="h-3.5 w-3.5" />
+                    {status.label}
+                  </span>
+                </div>
+                <div className="mt-4 grid grid-cols-2 gap-3 text-xs text-slate-300">
+                  <div>
+                    <p className="font-black uppercase text-slate-500">Creation</p>
+                    <p className="mt-1">{formatDate(user.created_at)}</p>
+                  </div>
+                  <div>
+                    <p className="font-black uppercase text-slate-500">Login</p>
+                    <p className="mt-1">{formatDate(user.last_login_at)}</p>
+                  </div>
+                </div>
+                <div className="mt-4 grid grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    disabled={isBusy || user.status === "active"}
+                    onClick={() => changeStatus(user.id, "active")}
+                    className="rounded-lg bg-lime-400 px-2 py-2 text-xs font-black text-white transition hover:bg-lime-300 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    Valider
+                  </button>
+                  <button
+                    type="button"
+                    disabled={isBusy || user.status === "pending"}
+                    onClick={() => changeStatus(user.id, "pending")}
+                    className="rounded-lg border border-amber-300/20 bg-amber-300/10 px-2 py-2 text-xs font-black text-amber-100 transition hover:bg-amber-300/20 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    Attente
+                  </button>
+                  <button
+                    type="button"
+                    disabled={isBusy || user.status === "blocked"}
+                    onClick={() => changeStatus(user.id, "blocked")}
+                    className="rounded-lg border border-red-300/20 bg-red-300/10 px-2 py-2 text-xs font-black text-red-100 transition hover:bg-red-300/20 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    Bloquer
+                  </button>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+        <div className="hidden overflow-x-auto md:block">
           <table className="min-w-full divide-y divide-white/10 text-left text-sm">
             <thead className="bg-white/[0.04]">
               <tr>
@@ -172,6 +236,7 @@ export function AdminUsersPanel({ users }: AdminUsersPanelProps) {
             </tbody>
           </table>
         </div>
+        </>
       )}
     </section>
   );

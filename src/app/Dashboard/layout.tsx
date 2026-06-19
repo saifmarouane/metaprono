@@ -23,7 +23,7 @@ export default async function DashboardLayout({
 
   return (
     <MetaPronosticProvider>
-      <div className="min-h-screen bg-[#11274c] p-4 text-white sm:p-6">
+      <div className="min-h-screen bg-[#11274c] p-3 text-white sm:p-6">
         <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
             <BrandLogo size="md" />
@@ -36,27 +36,27 @@ export default async function DashboardLayout({
               </h1>
             </div>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
             {access.user && (
-              <span className="inline-flex items-center justify-center rounded-lg border border-white/10 bg-white/[0.04] px-4 py-2 text-sm font-bold text-slate-200">
+              <span className="col-span-2 inline-flex min-w-0 items-center justify-center truncate rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-sm font-bold text-slate-200 sm:col-span-1 sm:px-4">
                 {access.user.name}
               </span>
             )}
             <Link
               href="/admin"
-              className="inline-flex items-center justify-center rounded-lg bg-lime-400 px-4 py-2 text-sm font-black text-white transition hover:bg-lime-300"
+              className="inline-flex items-center justify-center rounded-lg bg-lime-400 px-3 py-2 text-sm font-black text-white transition hover:bg-lime-300 sm:px-4"
             >
               Admin
             </Link>
             <Link
               href="/agent"
-              className="inline-flex items-center justify-center rounded-lg border border-cyan-300/20 bg-cyan-300/10 px-4 py-2 text-sm font-bold text-cyan-100 transition hover:bg-cyan-300/20"
+              className="inline-flex items-center justify-center rounded-lg border border-cyan-300/20 bg-cyan-300/10 px-3 py-2 text-sm font-bold text-cyan-100 transition hover:bg-cyan-300/20 sm:px-4"
             >
               Agent
             </Link>
             <Link
               href="/"
-              className="inline-flex items-center justify-center gap-2 rounded-lg border border-white/15 bg-white/5 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-white/10"
+              className="inline-flex items-center justify-center gap-2 rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm font-bold text-white transition-colors hover:bg-white/10 sm:px-4"
             >
               <ChevronLeft className="h-4 w-4" />
               Accueil
@@ -64,7 +64,7 @@ export default async function DashboardLayout({
             <form action="/api/auth/logout" method="post">
               <button
                 type="submit"
-                className="inline-flex items-center justify-center gap-2 rounded-lg border border-red-400/20 bg-red-400/10 px-4 py-2 text-sm font-bold text-red-100 transition hover:bg-red-400/20"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-red-400/20 bg-red-400/10 px-3 py-2 text-sm font-bold text-red-100 transition hover:bg-red-400/20 sm:px-4"
               >
                 <LogOut className="h-4 w-4" />
                 Logout
@@ -72,7 +72,7 @@ export default async function DashboardLayout({
             </form>
           </div>
         </div>
-        <div className="mb-5 grid gap-3 md:grid-cols-4">
+        <div className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-4">
           {[
             ["Live fixtures", "12", "text-lime-300"],
             ["Model confidence", "78%", "text-cyan-300"],
@@ -93,8 +93,8 @@ export default async function DashboardLayout({
             </div>
           ))}
         </div>
-        <div className="h-[calc(100vh-12rem)]">
-          <div className="overflow-hidden rounded-xl border border-white/10 bg-[#0d1b33]/95 shadow-2xl shadow-black/30 backdrop-blur-xl">
+        <div className="min-h-[70vh] lg:h-[calc(100vh-12rem)]">
+          <div className="h-full overflow-hidden rounded-xl border border-white/10 bg-[#0d1b33]/95 shadow-2xl shadow-black/30 backdrop-blur-xl">
             {chat}
           </div>
         </div>

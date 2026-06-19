@@ -65,12 +65,12 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   }
 
   return (
-    <main className="min-h-screen bg-[#11274c] p-4 text-white sm:p-6">
-      <div className="mx-auto flex min-h-[calc(100vh-3rem)] max-w-6xl items-center">
+    <main className="min-h-screen bg-[#11274c] p-3 text-white sm:p-6">
+      <div className="mx-auto flex min-h-[calc(100dvh-1.5rem)] max-w-6xl items-center sm:min-h-[calc(100vh-3rem)]">
         <div className="grid w-full gap-5 lg:grid-cols-[0.9fr_1.1fr]">
-          <section className="flex flex-col justify-between rounded-xl border border-white/10 bg-[#0d1b33] p-6 shadow-2xl shadow-black/30">
+          <section className="flex flex-col justify-between rounded-xl border border-white/10 bg-[#0d1b33] p-4 shadow-2xl shadow-black/30 sm:p-6">
             <div>
-              <div className="mb-8 flex items-center gap-3">
+              <div className="mb-6 flex items-center gap-3 sm:mb-8">
                 <BrandLogo size="lg" />
                 <div>
                   <p className="text-xs font-bold uppercase tracking-[0.22em] text-lime-300">
@@ -79,7 +79,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
                   <h1 className="text-2xl font-black">MetaPronostic</h1>
                 </div>
               </div>
-              <h2 className="text-4xl font-black tracking-normal">
+              <h2 className="text-3xl font-black tracking-normal sm:text-4xl">
                 Un seul login pour tous les roles.
               </h2>
               <p className="mt-4 text-sm leading-6 text-slate-300">
@@ -100,7 +100,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           </section>
 
           <section className="grid gap-5 md:grid-cols-2">
-            <div className="rounded-xl border border-white/10 bg-[#0d1b33] p-5 shadow-2xl shadow-black/30">
+            <div className="rounded-xl border border-white/10 bg-[#0d1b33] p-4 shadow-2xl shadow-black/30 sm:p-5">
               <div className="mb-5 flex items-center gap-2">
                 <LockKeyhole className="h-5 w-5 text-lime-300" />
                 <h2 className="font-black">Connexion</h2>
@@ -158,7 +158,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
               </form>
             </div>
 
-            <div className="rounded-xl border border-white/10 bg-[#0d1b33] p-5 shadow-2xl shadow-black/30">
+            <div className="rounded-xl border border-white/10 bg-[#0d1b33] p-4 shadow-2xl shadow-black/30 sm:p-5">
               <div className="mb-5 flex items-center gap-2">
                 <UserPlus className="h-5 w-5 text-cyan-300" />
                 <h2 className="font-black">Demander l'acces chat</h2>
