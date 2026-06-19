@@ -297,13 +297,75 @@ export type ApiFootballTeam = {
     national?: boolean;
     logo?: string;
   };
-  venue?: unknown;
+  venue?: {
+    id?: number;
+    name?: string;
+    city?: string;
+  };
 };
 
 export async function searchApiFootballTeams(
   search: string
 ): Promise<ApiFootballResponse<ApiFootballTeam>> {
   return apiFootballGet<ApiFootballTeam>("/teams", { search });
+}
+
+export async function fetchApiFootballTeamsByCountry(
+  country: string
+): Promise<ApiFootballResponse<ApiFootballTeam>> {
+  return apiFootballGet<ApiFootballTeam>("/teams", { country });
+}
+
+export async function fetchApiFootballTeamsByLeague(params: {
+  league: number;
+  season: number;
+}): Promise<ApiFootballResponse<ApiFootballTeam>> {
+  return apiFootballGet<ApiFootballTeam>("/teams", params);
+}
+
+export type ApiFootballCountry = {
+  name?: string;
+  code?: string | null;
+  flag?: string | null;
+};
+
+export async function searchApiFootballCountries(
+  search: string
+): Promise<ApiFootballResponse<ApiFootballCountry>> {
+  return apiFootballGet<ApiFootballCountry>("/countries", { search });
+}
+
+export async function fetchApiFootballCountries(): Promise<
+  ApiFootballResponse<ApiFootballCountry>
+> {
+  return apiFootballGet<ApiFootballCountry>("/countries", {});
+}
+
+export type ApiFootballLeague = {
+  league?: {
+    id?: number;
+    name?: string;
+    type?: string;
+    logo?: string;
+  };
+  country?: {
+    name?: string;
+    code?: string | null;
+    flag?: string | null;
+  };
+  seasons?: Array<{
+    year?: number;
+    current?: boolean;
+  }>;
+};
+
+export async function fetchApiFootballLeagues(params: {
+  country?: string;
+  search?: string;
+  season?: number;
+  current?: "true";
+}): Promise<ApiFootballResponse<ApiFootballLeague>> {
+  return apiFootballGet<ApiFootballLeague>("/leagues", params);
 }
 
 export async function fetchApiFootballHeadToHead(params: {
@@ -327,6 +389,22 @@ export async function fetchApiFootballLineups(
   fixture: number
 ): Promise<ApiFootballResponse<ApiFootballLineup>> {
   return apiFootballGet<ApiFootballLineup>("/fixtures/lineups", { fixture });
+}
+
+export type ApiFootballFixtureEvent = {
+  time?: { elapsed?: number; extra?: number | null };
+  team?: { id?: number; name?: string; logo?: string };
+  player?: { id?: number; name?: string };
+  assist?: { id?: number; name?: string | null };
+  type?: string;
+  detail?: string;
+  comments?: string | null;
+};
+
+export async function fetchApiFootballFixtureEvents(
+  fixture: number
+): Promise<ApiFootballResponse<ApiFootballFixtureEvent>> {
+  return apiFootballGet<ApiFootballFixtureEvent>("/fixtures/events", { fixture });
 }
 
 export async function fetchApiFootballInjuries(params: {

@@ -4,7 +4,9 @@ import { getCurrentChatAccess } from "@/lib/chat-users";
 import { recordUserAction } from "@/lib/user-actions";
 import {
   type ApiFootballFixture,
+  type ApiFootballFixtureEvent,
   type ApiFootballTeam,
+  fetchApiFootballFixtureEvents,
   fetchApiFootballHeadToHead,
   fetchApiFootballInjuries,
   fetchApiFootballLineups,
@@ -92,6 +94,27 @@ async function findTeam(name: string) {
       .slice(0, 5)
       .map((item: ApiFootballTeam) => item.team?.name)
       .filter(Boolean),
+  };
+}
+
+async function findTeamByInput(input: {
+  name: string;
+  teamId?: number | null;
+  logo?: string | null;
+  country?: string | null;
+}) {
+  if (!input.teamId) {
+    return findTeam(input.name);
+  }
+
+  return {
+    id: input.teamId,
+    name: input.name,
+    code: null,
+    country: input.country ?? null,
+    national: false,
+    logo: input.logo ?? null,
+    alternatives: [],
   };
 }
 
@@ -226,6 +249,64 @@ function extractStanding(teamId: number, standingsResponse: unknown) {
   return standingGroups.flat().find((standing) => standing.team?.id === teamId) ?? null;
 }
 
+function summarizeFixtureEvents(teamId: number, events: ApiFootballFixtureEvent[]) {
+  const scorerMap = new Map<string, { id?: number; name: string; total: number }>();
+  const cardMap = new Map<
+    string,
+    { id?: number; name: string; yellow: number; red: number }
+  >();
+
+  for (const event of events) {
+    if (event.team?.id !== teamId) {
+      continue;
+    }
+
+    const playerName = event.player?.name ?? "Joueur";
+    const playerKey = String(event.player?.id ?? playerName);
+
+    if (event.type === "Goal") {
+      const current = scorerMap.get(playerKey) ?? {
+        id: event.player?.id,
+        name: playerName,
+        total: 0,
+      };
+      current.total += 1;
+      scorerMap.set(playerKey, current);
+    }
+
+    if (event.type === "Card") {
+      const current = cardMap.get(playerKey) ?? {
+        id: event.player?.id,
+        name: playerName,
+        yellow: 0,
+        red: 0,
+      };
+
+      if (event.detail?.toLowerCase().includes("red")) {
+        current.red += 1;
+      } else {
+        current.yellow += 1;
+      }
+
+      cardMap.set(playerKey, current);
+    }
+  }
+
+  const cards = [...cardMap.values()].sort(
+    (first, second) =>
+      second.red + second.yellow - (first.red + first.yellow)
+  );
+
+  return {
+    scorers: [...scorerMap.values()]
+      .sort((first, second) => second.total - first.total)
+      .slice(0, 8),
+    yellowCards: cards.reduce((total, card) => total + card.yellow, 0),
+    redCards: cards.reduce((total, card) => total + card.red, 0),
+    cards: cards.slice(0, 8),
+  };
+}
+
 async function getTeamAnalytics(params: {
   team: Awaited<ReturnType<typeof findTeam>>;
   leagueId: number | null;
@@ -272,6 +353,20 @@ async function getTeamAnalytics(params: {
     recentResult.status === "fulfilled"
       ? sortByDate(recentResult.value.response.map(formatFixture)).reverse()
       : [];
+  const eventResults = await Promise.allSettled(
+    recentMatches
+      .slice(0, 5)
+      .map((match) =>
+        match.fixtureId
+          ? fetchApiFootballFixtureEvents(match.fixtureId)
+          : Promise.resolve(null)
+      )
+  );
+  const recentEvents = eventResults.flatMap((result) =>
+    result.status === "fulfilled" && result.value
+      ? result.value.response
+      : []
+  );
   const squad =
     squadResult.status === "fulfilled" ? squadResult.value.response[0] : null;
   const injuries =
@@ -300,6 +395,7 @@ async function getTeamAnalytics(params: {
       summary: summarizeRecentForm(params.team.id, recentMatches),
       matches: recentMatches.slice(0, 5),
     },
+    eventsSummary: summarizeFixtureEvents(params.team.id, recentEvents),
     squad: {
       count: squad?.players?.length ?? 0,
       players: (squad?.players ?? []).slice(0, 24),
@@ -353,6 +449,12 @@ export async function GET(req: NextRequest) {
 
   const teamA = req.nextUrl.searchParams.get("teamA")?.trim();
   const teamB = req.nextUrl.searchParams.get("teamB")?.trim();
+  const teamAId = Number(req.nextUrl.searchParams.get("teamAId"));
+  const teamBId = Number(req.nextUrl.searchParams.get("teamBId"));
+  const teamALogo = req.nextUrl.searchParams.get("teamALogo");
+  const teamBLogo = req.nextUrl.searchParams.get("teamBLogo");
+  const teamACountry = req.nextUrl.searchParams.get("teamACountry");
+  const teamBCountry = req.nextUrl.searchParams.get("teamBCountry");
   const timezone =
     req.nextUrl.searchParams.get("timezone")?.trim() || "Africa/Casablanca";
 
@@ -365,8 +467,18 @@ export async function GET(req: NextRequest) {
 
   try {
     const [firstTeam, secondTeam] = await Promise.all([
-      findTeam(teamA),
-      findTeam(teamB),
+      findTeamByInput({
+        name: teamA,
+        teamId: Number.isFinite(teamAId) ? teamAId : null,
+        logo: teamALogo,
+        country: teamACountry,
+      }),
+      findTeamByInput({
+        name: teamB,
+        teamId: Number.isFinite(teamBId) ? teamBId : null,
+        logo: teamBLogo,
+        country: teamBCountry,
+      }),
     ]);
 
     const headToHeadResult = await fetchApiFootballHeadToHead({
