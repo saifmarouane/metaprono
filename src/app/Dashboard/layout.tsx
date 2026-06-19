@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 
 export default async function DashboardLayout({
   chat,
-  explorer,
+  explorer: _explorer,
 }: {
   children: React.ReactNode;
   chat: React.ReactNode;
@@ -93,12 +93,9 @@ export default async function DashboardLayout({
             </div>
           ))}
         </div>
-        <div className="grid h-[calc(100vh-12rem)] grid-cols-1 gap-5 lg:grid-cols-[1.1fr_0.9fr]">
+        <div className="h-[calc(100vh-12rem)]">
           <div className="overflow-hidden rounded-xl border border-white/10 bg-[#0d1b33]/95 shadow-2xl shadow-black/30 backdrop-blur-xl">
             {chat}
-          </div>
-          <div className="overflow-hidden rounded-xl border border-white/10 bg-[#0d1b33]/95 shadow-2xl shadow-black/30 backdrop-blur-xl">
-            {explorer}
           </div>
         </div>
       </div>

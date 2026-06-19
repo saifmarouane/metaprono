@@ -1,8 +1,22 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { BarChart3, BrainCircuit, Send, Trophy } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import {
+  AlertTriangle,
+  Bot,
+  ChevronDown,
+  Clock3,
+  Loader2,
+  MessageCircle,
+  RefreshCw,
+  Search,
+  Send,
+  ShieldAlert,
+  Swords,
+  Trophy,
+  Users,
+} from "lucide-react";
 import { useMetaPronostic } from "@/contexts/metapronostic-context";
 
 type Message = {
@@ -12,13 +26,129 @@ type Message = {
   isStreaming?: boolean;
 };
 
+type MatchPreview = {
+  fixtureId: number | null;
+  date: string | null;
+  status: { long?: string; short?: string; elapsed?: number | null } | null;
+  competition: {
+    id: number | null;
+    name: string | null;
+    country: string | null;
+    logo?: string | null;
+    flag?: string | null;
+    round?: string | null;
+  };
+  home: { id: number | null; name: string | null; logo?: string | null };
+  away: { id: number | null; name: string | null; logo?: string | null };
+  goals: { home: number | null; away: number | null };
+};
+
+type CompetitionGroup = {
+  id: number | null;
+  name: string;
+  country: string | null;
+  logo: string | null;
+  flag: string | null;
+  liveCount: number;
+  todayCount: number;
+  nextMatches: MatchPreview[];
+};
+
+type DashboardData = {
+  generatedAt: string;
+  today: string;
+  timezone: string;
+  summary: {
+    live: number;
+    today: number;
+    nextToday: number;
+    competitions: number;
+  };
+  live: MatchPreview[];
+  competitions: CompetitionGroup[];
+};
+
+type PredictionData = {
+  teams: {
+    teamA: { id: number; name: string; logo: string | null };
+    teamB: { id: number; name: string; logo: string | null };
+  };
+  fixture: MatchPreview | null;
+  percentages: {
+    teamAWin: number;
+    draw: number;
+    teamBWin: number;
+    source: string;
+  };
+  advice: string | null;
+  winner: { name?: string | null; comment?: string | null } | null;
+  lineups: Array<{
+    team?: { id?: number; name?: string; logo?: string };
+    formation?: string;
+    startXI?: Array<{ player?: { id?: number; name?: string; pos?: string } }>;
+  }>;
+  injuries: Array<{
+    player?: { id?: number; name?: string; type?: string | null; reason?: string | null };
+    team?: { id?: number; name?: string; logo?: string };
+  }>;
+  headToHead: {
+    count: number;
+    matches: MatchPreview[];
+  };
+};
+
 const promptSuggestions = [
-  "Donne le classement de la Ligue 1 2025",
-  "Quels signaux pour PSG vs OM ?",
-  "Quels joueurs blessés pour le prochain match ?",
+  "Analyse les matchs live importants",
+  "Quels signaux pour Maroc vs France ?",
+  "Explique les blessures du prochain match",
 ];
 
+function formatDate(value: string | null) {
+  if (!value) return "-";
+  return new Intl.DateTimeFormat("fr-FR", {
+    hour: "2-digit",
+    minute: "2-digit",
+    day: "2-digit",
+    month: "short",
+  }).format(new Date(value));
+}
+
+function PercentBar({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: number;
+  tone: string;
+}) {
+  return (
+    <div>
+      <div className="mb-2 flex items-center justify-between text-xs font-black uppercase text-slate-300">
+        <span>{label}</span>
+        <span>{value}%</span>
+      </div>
+      <div className="h-2 overflow-hidden rounded-full bg-white/10">
+        <div className={`h-full rounded-full ${tone}`} style={{ width: `${value}%` }} />
+      </div>
+    </div>
+  );
+}
+
 export default function ChatSlotPage() {
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
+  const [dashboardStatus, setDashboardStatus] = useState<{
+    type: "loading" | "success" | "error";
+    message: string;
+  }>({ type: "loading", message: "Chargement API-FOOTBALL..." });
+  const [teamA, setTeamA] = useState("Morocco");
+  const [teamB, setTeamB] = useState("France");
+  const [prediction, setPrediction] = useState<PredictionData | null>(null);
+  const [predictionStatus, setPredictionStatus] = useState<{
+    type: "idle" | "loading" | "success" | "error";
+    message: string;
+  }>({ type: "idle", message: "" });
+  const [chatOpen, setChatOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -26,15 +156,75 @@ export default function ChatSlotPage() {
   const inputRef = useRef<HTMLInputElement>(null);
   const { setIsThinking } = useMetaPronostic();
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
+  async function loadDashboard() {
+    setDashboardStatus({ type: "loading", message: "Chargement API-FOOTBALL..." });
+
+    try {
+      const response = await fetch("/api/football/dashboard");
+      const result = (await response.json()) as
+        | ({ ok: true } & DashboardData)
+        | { ok?: false; error?: string };
+
+      if (!response.ok || result.ok !== true) {
+        throw new Error("error" in result && result.error ? result.error : "Erreur API-FOOTBALL");
+      }
+
+      setDashboardData(result);
+      setDashboardStatus({
+        type: "success",
+        message: `Mis a jour: ${formatDate(result.generatedAt)}`,
+      });
+    } catch (error) {
+      setDashboardStatus({
+        type: "error",
+        message: error instanceof Error ? error.message : "Erreur inconnue",
+      });
+    }
+  }
+
+  async function runPrediction(event: React.FormEvent) {
+    event.preventDefault();
+    if (!teamA.trim() || !teamB.trim()) return;
+
+    setPredictionStatus({
+      type: "loading",
+      message: "Recherche equipes, prediction, compositions et blessures...",
+    });
+    setPrediction(null);
+
+    try {
+      const params = new URLSearchParams({ teamA, teamB });
+      const response = await fetch(`/api/football/predict?${params}`);
+      const result = (await response.json()) as
+        | ({ ok: true } & PredictionData)
+        | { ok?: false; error?: string };
+
+      if (!response.ok || result.ok !== true) {
+        throw new Error("error" in result && result.error ? result.error : "Erreur prediction");
+      }
+
+      setPrediction(result);
+      setPredictionStatus({
+        type: "success",
+        message: `Prediction prete pour ${result.teams.teamA.name} vs ${result.teams.teamB.name}.`,
+      });
+    } catch (error) {
+      setPredictionStatus({
+        type: "error",
+        message: error instanceof Error ? error.message : "Erreur inconnue",
+      });
+    }
+  }
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    loadDashboard();
+  }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, chatOpen]);
+
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
 
@@ -50,64 +240,41 @@ export default function ChatSlotPage() {
     setIsThinking(true);
 
     const assistantMessageId = (Date.now() + 1).toString();
-    const assistantMessage: Message = {
-      id: assistantMessageId,
-      role: "assistant",
-      content: "",
-      isStreaming: true,
-    };
-
-    setMessages((prev) => [...prev, assistantMessage]);
+    setMessages((prev) => [
+      ...prev,
+      { id: assistantMessageId, role: "assistant", content: "", isStreaming: true },
+    ]);
 
     try {
       let fullContent = "";
-      
-      // Prepare conversation history (last 10 messages for context, excluding empty streaming messages)
       const conversationHistory = [...messages, userMessage]
-        .filter((msg) => msg.content.trim().length > 0) // Exclude empty streaming messages
+        .filter((msg) => msg.content.trim().length > 0)
         .slice(-10)
-        .map((msg) => ({
-          role: msg.role,
-          content: msg.content,
-        }));
+        .map((msg) => ({ role: msg.role, content: msg.content }));
 
       const response = await fetch("/api/chat", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           message: userMessage.content,
           namespace: "uploads",
-          conversationHistory: conversationHistory,
+          conversationHistory,
         }),
       });
 
       if (!response.ok) {
-        let errorMessage = `HTTP error! status: ${response.status}`;
-        try {
-          const errorData = await response.json();
-          errorMessage = errorData.error || errorMessage;
-        } catch {
-          errorMessage = response.statusText || errorMessage;
-        }
-        throw new Error(errorMessage);
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.error ?? response.statusText);
       }
 
       const reader = response.body?.getReader();
+      if (!reader) throw new Error("No reader available");
       const decoder = new TextDecoder();
-
-      if (!reader) {
-        throw new Error("No reader available");
-      }
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-
-        const chunk = decoder.decode(value, { stream: true });
-        fullContent += chunk;
-        
+        fullContent += decoder.decode(value, { stream: true });
         setMessages((prev) =>
           prev.map((msg) =>
             msg.id === assistantMessageId
@@ -119,18 +286,18 @@ export default function ChatSlotPage() {
 
       setMessages((prev) =>
         prev.map((msg) =>
-          msg.id === assistantMessageId
-            ? { ...msg, isStreaming: false }
-            : msg
+          msg.id === assistantMessageId ? { ...msg, isStreaming: false } : msg
         )
       );
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Failed to get response";
       setMessages((prev) =>
         prev.map((msg) =>
           msg.id === assistantMessageId
-            ? { ...msg, content: errorMessage, isStreaming: false }
+            ? {
+                ...msg,
+                content: error instanceof Error ? error.message : "Failed to get response",
+                isStreaming: false,
+              }
             : msg
         )
       );
@@ -139,158 +306,373 @@ export default function ChatSlotPage() {
       setIsThinking(false);
       inputRef.current?.focus();
     }
-  };
+  }
 
   return (
-    <div className="flex h-full flex-col">
-      {/* Minimalist Header */}
-      <div className="border-b border-white/10 px-8 py-6">
-        <div className="flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-lime-400/15 text-lime-300">
-            <BrainCircuit className="h-6 w-6" />
-          </div>
-          <div>
-            <h2 className="text-xl font-black text-white">
-              Match Prediction AI
-            </h2>
-            <p className="text-xs text-slate-400 mt-0.5">
-              Interroge fixtures, cotes, classement, joueurs et blessures
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Messages Container */}
-      <div className="flex-1 overflow-y-auto px-8 py-6">
-        <div className="mx-auto max-w-2xl space-y-4">
-          {messages.length === 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex flex-col items-center justify-center py-20 text-center"
-            >
-              <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-xl bg-lime-400/15">
-                <Trophy className="h-10 w-10 text-lime-300" />
-              </div>
-              <h3 className="text-xl font-black text-white mb-2">
-                MetaPronostic est prêt
-              </h3>
-              <p className="text-sm text-slate-400 max-w-md">
-                Pose une question sur un match, un classement, une cote, une
-                blessure ou une tendance de forme.
+    <div className="relative h-full overflow-y-auto px-4 py-5 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl space-y-5">
+        <section className="flex flex-col gap-4 border-b border-white/10 pb-5 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-cyan-400/10 text-cyan-300">
+              <Trophy className="h-6 w-6" />
+            </div>
+            <div>
+              <h2 className="text-xl font-black text-white">Evenements football en cours</h2>
+              <p className="mt-1 text-sm text-slate-400">
+                Live, competitions du jour et les 3 prochains matchs par evenement.
               </p>
-              <div className="mt-6 grid w-full max-w-md gap-2">
-                {promptSuggestions.map((suggestion) => (
-                  <button
-                    key={suggestion}
-                    type="button"
-                    onClick={() => setInput(suggestion)}
-                    className="rounded-lg border border-white/10 bg-white/[0.04] px-4 py-3 text-left text-sm font-medium text-slate-200 transition hover:border-lime-300/40 hover:bg-lime-300/10"
-                  >
-                    {suggestion}
-                  </button>
-                ))}
-              </div>
-            </motion.div>
-          )}
-
-          <AnimatePresence>
-            {messages.map((message) => (
-              <motion.div
-                key={message.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ duration: 0.2 }}
-                className={`flex ${
-                  message.role === "user" ? "justify-end" : "justify-start"
-                }`}
-              >
-                <div
-                  className={`max-w-[85%] rounded-2xl px-5 py-3.5 ${
-                    message.role === "user"
-                      ? "bg-lime-400 text-white shadow-lg shadow-lime-500/20"
-                      : "bg-white/5 border border-white/10 text-slate-100"
-                  }`}
-                >
-                  <div className="whitespace-pre-wrap break-words text-sm leading-relaxed">
-                    {message.content}
-                    {message.isStreaming && (
-                      <motion.span
-                        animate={{ opacity: [1, 0.3, 1] }}
-                        transition={{
-                          duration: 1,
-                          repeat: Infinity,
-                          ease: "easeInOut",
-                        }}
-                        className="ml-1 inline-block h-4 w-1 bg-current"
-                      />
-                    )}
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </AnimatePresence>
-
-          {isLoading && messages.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="flex items-center gap-2 text-slate-400"
-            >
-              <div className="flex gap-1">
-                <motion.div
-                  animate={{ y: [0, -4, 0] }}
-                  transition={{ duration: 0.6, repeat: Infinity, delay: 0 }}
-                  className="h-2 w-2 rounded-full bg-lime-300"
-                />
-                <motion.div
-                  animate={{ y: [0, -4, 0] }}
-                  transition={{ duration: 0.6, repeat: Infinity, delay: 0.2 }}
-                  className="h-2 w-2 rounded-full bg-lime-300"
-                />
-                <motion.div
-                  animate={{ y: [0, -4, 0] }}
-                  transition={{ duration: 0.6, repeat: Infinity, delay: 0.4 }}
-                  className="h-2 w-2 rounded-full bg-lime-300"
-                />
-              </div>
-              <span className="text-xs">Analyse du match...</span>
-            </motion.div>
-          )}
-
-          <div ref={messagesEndRef} />
-        </div>
-      </div>
-
-      {/* Minimalist Input Bar */}
-      <div className="border-t border-white/10 px-8 py-6">
-        <form onSubmit={handleSubmit} className="mx-auto max-w-2xl">
-          <div className="flex gap-3">
-           
-            <input
-              ref={inputRef}
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="Ex: Donne les signaux forts pour PSG vs OM..."
-              disabled={isLoading}
-              className="flex-1 rounded-lg border border-white/10 bg-white/5 px-5 py-3 text-sm text-white placeholder:text-slate-500 transition-all focus:border-lime-300/50 focus:outline-none focus:ring-2 focus:ring-lime-300/20 disabled:opacity-50"
-            />
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
             <button
-              type="submit"
-              disabled={isLoading || !input.trim()}
-              className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-lime-400 text-white transition-all hover:scale-105 hover:bg-lime-300 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
-              aria-label="Send message"
+              type="button"
+              onClick={loadDashboard}
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/[0.04] px-3 text-sm font-bold text-slate-100 transition hover:bg-white/10"
             >
-              <Send className="h-5 w-5" />
+              <RefreshCw className="h-4 w-4" />
+              Actualiser
+            </button>
+            <button
+              type="button"
+              onClick={() => setChatOpen((current) => !current)}
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-lime-400 px-3 text-sm font-black text-white transition hover:bg-lime-300"
+            >
+              <MessageCircle className="h-4 w-4" />
+              Chat IA
             </button>
           </div>
-          <div className="mt-3 flex items-center gap-2 text-xs text-slate-500">
-            <BarChart3 className="h-4 w-4 text-cyan-300" />
-            MongoDB football data + Gemini response engine
+        </section>
+
+        <section className="grid gap-3 md:grid-cols-4">
+          {[
+            ["Live", dashboardData?.summary.live ?? 0, "text-emerald-300"],
+            ["Matchs aujourd'hui", dashboardData?.summary.today ?? 0, "text-cyan-300"],
+            ["A venir", dashboardData?.summary.nextToday ?? 0, "text-amber-300"],
+            ["Competitions", dashboardData?.summary.competitions ?? 0, "text-lime-300"],
+          ].map(([label, value, color]) => (
+            <div key={label} className="rounded-lg border border-white/10 bg-white/[0.04] p-4">
+              <p className="text-xs font-black uppercase text-slate-400">{label}</p>
+              <p className={`mt-2 text-2xl font-black ${color}`}>{value}</p>
+            </div>
+          ))}
+        </section>
+
+        {dashboardStatus.type !== "success" && (
+          <div
+            className={`flex items-center gap-2 rounded-lg border px-4 py-3 text-sm font-bold ${
+              dashboardStatus.type === "error"
+                ? "border-red-400/25 bg-red-400/10 text-red-200"
+                : "border-cyan-300/25 bg-cyan-300/10 text-cyan-100"
+            }`}
+          >
+            {dashboardStatus.type === "loading" ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <AlertTriangle className="h-4 w-4" />
+            )}
+            {dashboardStatus.message}
           </div>
-        </form>
+        )}
+
+        <section className="grid gap-5 xl:grid-cols-[1fr_380px]">
+          <div className="space-y-5">
+            <div className="overflow-hidden rounded-lg border border-white/10">
+              <div className="flex items-center justify-between border-b border-white/10 bg-white/[0.04] px-4 py-3">
+                <h3 className="font-black text-white">Matchs live</h3>
+                <span className="text-xs font-bold text-slate-400">
+                  {dashboardData?.timezone ?? "Africa/Casablanca"}
+                </span>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-white/10 text-left text-sm">
+                  <thead className="bg-black/15">
+                    <tr>
+                      {["Status", "Match", "Score", "Competition", "Heure"].map((column) => (
+                        <th key={column} className="whitespace-nowrap px-4 py-3 text-xs font-black uppercase text-slate-400">
+                          {column}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/10">
+                    {(dashboardData?.live ?? []).length === 0 && (
+                      <tr>
+                        <td colSpan={5} className="px-4 py-8 text-center text-sm text-slate-400">
+                          Aucun match live retourne par API-FOOTBALL.
+                        </td>
+                      </tr>
+                    )}
+                    {(dashboardData?.live ?? []).map((match) => (
+                      <tr key={match.fixtureId} className="hover:bg-white/[0.03]">
+                        <td className="px-4 py-3">
+                          <span className="inline-flex items-center gap-2 rounded-md bg-emerald-400/10 px-2 py-1 text-xs font-black text-emerald-200">
+                            <span className="h-2 w-2 rounded-full bg-emerald-300" />
+                            {match.status?.elapsed ?? match.status?.short ?? "-"}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 font-bold text-white">
+                          {match.home.name ?? "-"} vs {match.away.name ?? "-"}
+                        </td>
+                        <td className="px-4 py-3 font-black text-cyan-200">
+                          {match.goals.home ?? 0} - {match.goals.away ?? 0}
+                        </td>
+                        <td className="px-4 py-3 text-slate-300">
+                          {match.competition.name ?? "-"}
+                          <span className="block text-xs text-slate-500">
+                            {match.competition.country ?? ""}
+                          </span>
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-3 text-slate-300">
+                          {formatDate(match.date)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div className="grid gap-3">
+              {(dashboardData?.competitions ?? []).map((competition) => (
+                <article key={`${competition.id}-${competition.name}`} className="rounded-lg border border-white/10 bg-white/[0.04] p-4">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <h3 className="font-black text-white">{competition.name}</h3>
+                      <p className="mt-1 text-xs font-bold uppercase text-slate-400">
+                        {competition.country ?? "International"} · {competition.todayCount} match(s) aujourd'hui · {competition.liveCount} live
+                      </p>
+                    </div>
+                    <Clock3 className="h-5 w-5 text-amber-300" />
+                  </div>
+                  <div className="mt-4 grid gap-2 lg:grid-cols-3">
+                    {competition.nextMatches.length === 0 && (
+                      <div className="rounded-lg border border-white/10 bg-black/15 px-3 py-3 text-sm text-slate-400 lg:col-span-3">
+                        Aucun prochain match aujourd'hui pour cette competition.
+                      </div>
+                    )}
+                    {competition.nextMatches.map((match) => (
+                      <div key={match.fixtureId} className="rounded-lg border border-white/10 bg-black/15 p-3">
+                        <p className="text-xs font-black uppercase text-amber-200">
+                          {formatDate(match.date)}
+                        </p>
+                        <p className="mt-2 text-sm font-black text-white">
+                          {match.home.name ?? "-"} vs {match.away.name ?? "-"}
+                        </p>
+                        <p className="mt-1 text-xs text-slate-500">
+                          {match.competition.round ?? match.status?.long ?? ""}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </article>
+              ))}
+            </div>
+          </div>
+
+          <aside className="h-max rounded-lg border border-white/10 bg-white/[0.04] p-4">
+            <div className="mb-4 flex items-center gap-2">
+              <Swords className="h-5 w-5 text-lime-300" />
+              <div>
+                <h3 className="font-black text-white">Prediction match</h3>
+                <p className="text-xs text-slate-400">Deux equipes, probabilites, joueurs et blesses.</p>
+              </div>
+            </div>
+            <form onSubmit={runPrediction} className="grid gap-3">
+              <input
+                value={teamA}
+                onChange={(event) => setTeamA(event.target.value)}
+                className="h-11 rounded-lg border border-white/10 bg-black/20 px-3 text-sm font-bold text-white outline-none focus:border-cyan-300/50"
+                placeholder="Equipe A"
+              />
+              <input
+                value={teamB}
+                onChange={(event) => setTeamB(event.target.value)}
+                className="h-11 rounded-lg border border-white/10 bg-black/20 px-3 text-sm font-bold text-white outline-none focus:border-cyan-300/50"
+                placeholder="Equipe B"
+              />
+              <button
+                type="submit"
+                disabled={predictionStatus.type === "loading"}
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-lime-400 px-4 text-sm font-black text-white transition hover:bg-lime-300 disabled:opacity-60"
+              >
+                {predictionStatus.type === "loading" ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Search className="h-4 w-4" />
+                )}
+                Predire
+              </button>
+            </form>
+
+            {predictionStatus.type !== "idle" && (
+              <div
+                className={`mt-4 rounded-lg border px-3 py-2 text-sm font-bold ${
+                  predictionStatus.type === "error"
+                    ? "border-red-400/25 bg-red-400/10 text-red-200"
+                    : "border-lime-300/25 bg-lime-300/10 text-lime-100"
+                }`}
+              >
+                {predictionStatus.message}
+              </div>
+            )}
+
+            {prediction && (
+              <div className="mt-5 space-y-5">
+                <div className="rounded-lg border border-white/10 bg-black/15 p-4">
+                  <p className="text-sm font-black text-white">
+                    {prediction.teams.teamA.name} vs {prediction.teams.teamB.name}
+                  </p>
+                  <p className="mt-1 text-xs text-slate-400">
+                    Source: {prediction.percentages.source}
+                  </p>
+                  <div className="mt-4 space-y-4">
+                    <PercentBar label={`${prediction.teams.teamA.name} gagne`} value={prediction.percentages.teamAWin} tone="bg-emerald-300" />
+                    <PercentBar label="Egalite" value={prediction.percentages.draw} tone="bg-amber-300" />
+                    <PercentBar label={`${prediction.teams.teamB.name} gagne`} value={prediction.percentages.teamBWin} tone="bg-cyan-300" />
+                  </div>
+                  {prediction.advice && (
+                    <p className="mt-4 rounded-lg bg-cyan-300/10 p-3 text-sm text-cyan-100">
+                      {prediction.advice}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <div className="mb-2 flex items-center gap-2 text-sm font-black text-white">
+                    <Users className="h-4 w-4 text-cyan-300" />
+                    Joueurs prevus
+                  </div>
+                  <div className="grid gap-2">
+                    {prediction.lineups.length === 0 && (
+                      <p className="rounded-lg border border-white/10 bg-black/15 p-3 text-sm text-slate-400">
+                        Compositions non disponibles pour ce match.
+                      </p>
+                    )}
+                    {prediction.lineups.map((lineup) => (
+                      <div key={lineup.team?.id ?? lineup.team?.name} className="rounded-lg border border-white/10 bg-black/15 p-3">
+                        <p className="text-sm font-black text-white">
+                          {lineup.team?.name ?? "Equipe"} {lineup.formation ? `· ${lineup.formation}` : ""}
+                        </p>
+                        <p className="mt-2 text-xs leading-5 text-slate-300">
+                          {(lineup.startXI ?? [])
+                            .slice(0, 11)
+                            .map((item) => item.player?.name)
+                            .filter(Boolean)
+                            .join(", ") || "XI non publie"}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <div className="mb-2 flex items-center gap-2 text-sm font-black text-white">
+                    <ShieldAlert className="h-4 w-4 text-red-300" />
+                    Joueurs blesses
+                  </div>
+                  <div className="grid gap-2">
+                    {prediction.injuries.length === 0 && (
+                      <p className="rounded-lg border border-white/10 bg-black/15 p-3 text-sm text-slate-400">
+                        Aucun blesse retourne par API-FOOTBALL pour ce match.
+                      </p>
+                    )}
+                    {prediction.injuries.slice(0, 8).map((injury) => (
+                      <div key={`${injury.team?.id}-${injury.player?.id}-${injury.player?.name}`} className="rounded-lg border border-red-300/15 bg-red-400/10 p-3 text-sm">
+                        <p className="font-black text-red-100">{injury.player?.name ?? "Joueur"}</p>
+                        <p className="mt-1 text-xs text-red-100/80">
+                          {injury.team?.name ?? "Equipe"} · {injury.player?.type ?? "Absence"} · {injury.player?.reason ?? "Raison non precisee"}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </aside>
+        </section>
       </div>
+
+      <AnimatePresence>
+        {chatOpen && (
+          <motion.section
+            initial={{ opacity: 0, y: 18, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 18, scale: 0.98 }}
+            className="fixed bottom-5 right-5 z-50 flex h-[560px] w-[min(420px,calc(100vw-2.5rem))] flex-col overflow-hidden rounded-xl border border-white/10 bg-[#0d1b33] shadow-2xl shadow-black/50"
+          >
+            <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
+              <div className="flex items-center gap-2">
+                <Bot className="h-5 w-5 text-lime-300" />
+                <h3 className="font-black text-white">Chat IA</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setChatOpen(false)}
+                className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-white/[0.04] text-slate-200 hover:bg-white/10"
+                aria-label="Masquer le chat"
+              >
+                <ChevronDown className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto px-4 py-4">
+              {messages.length === 0 && (
+                <div className="grid gap-2">
+                  {promptSuggestions.map((suggestion) => (
+                    <button
+                      key={suggestion}
+                      type="button"
+                      onClick={() => setInput(suggestion)}
+                      className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-left text-sm font-medium text-slate-200 hover:bg-white/10"
+                    >
+                      {suggestion}
+                    </button>
+                  ))}
+                </div>
+              )}
+              <div className="space-y-3">
+                {messages.map((message) => (
+                  <div
+                    key={message.id}
+                    className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
+                  >
+                    <div
+                      className={`max-w-[86%] rounded-lg px-3 py-2 text-sm leading-6 ${
+                        message.role === "user"
+                          ? "bg-lime-400 text-white"
+                          : "border border-white/10 bg-white/[0.05] text-slate-100"
+                      }`}
+                    >
+                      {message.content}
+                      {message.isStreaming && <span className="ml-1 inline-block h-3 w-1 bg-current" />}
+                    </div>
+                  </div>
+                ))}
+                <div ref={messagesEndRef} />
+              </div>
+            </div>
+            <form onSubmit={handleSubmit} className="border-t border-white/10 p-3">
+              <div className="flex gap-2">
+                <input
+                  ref={inputRef}
+                  value={input}
+                  onChange={(event) => setInput(event.target.value)}
+                  disabled={isLoading}
+                  placeholder="Question football..."
+                  className="min-w-0 flex-1 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none placeholder:text-slate-500 focus:border-lime-300/50"
+                />
+                <button
+                  type="submit"
+                  disabled={isLoading || !input.trim()}
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-lime-400 text-white hover:bg-lime-300 disabled:opacity-50"
+                  aria-label="Envoyer"
+                >
+                  <Send className="h-4 w-4" />
+                </button>
+              </div>
+            </form>
+          </motion.section>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

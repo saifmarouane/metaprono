@@ -60,6 +60,86 @@ export type ApiFootballFixture = {
   score?: unknown;
 };
 
+export type ApiFootballPrediction = {
+  predictions?: {
+    winner?: {
+      id?: number | null;
+      name?: string | null;
+      comment?: string | null;
+    };
+    win_or_draw?: boolean;
+    under_over?: string | null;
+    goals?: {
+      home?: string | null;
+      away?: string | null;
+    };
+    advice?: string | null;
+    percent?: {
+      home?: string | null;
+      draw?: string | null;
+      away?: string | null;
+    };
+  };
+  league?: ApiFootballFixture["league"];
+  teams?: ApiFootballFixture["teams"];
+  comparison?: unknown;
+  h2h?: ApiFootballFixture[];
+};
+
+export type ApiFootballLineup = {
+  team?: {
+    id?: number;
+    name?: string;
+    logo?: string;
+  };
+  coach?: {
+    id?: number;
+    name?: string;
+    photo?: string;
+  };
+  formation?: string;
+  startXI?: Array<{
+    player?: {
+      id?: number;
+      name?: string;
+      number?: number;
+      pos?: string;
+      grid?: string | null;
+    };
+  }>;
+  substitutes?: Array<{
+    player?: {
+      id?: number;
+      name?: string;
+      number?: number;
+      pos?: string;
+      grid?: string | null;
+    };
+  }>;
+};
+
+export type ApiFootballInjury = {
+  player?: {
+    id?: number;
+    name?: string;
+    photo?: string;
+    type?: string | null;
+    reason?: string | null;
+  };
+  team?: {
+    id?: number;
+    name?: string;
+    logo?: string;
+  };
+  fixture?: {
+    id?: number;
+    timezone?: string;
+    date?: string;
+    timestamp?: number;
+  };
+  league?: ApiFootballFixture["league"];
+};
+
 function getApiSportsKey(): string {
   const key =
     process.env.APISPORTS_KEY ??
@@ -90,7 +170,7 @@ export async function apiFootballGet<T>(
 
   const response = await fetch(url, {
     headers: {
-      "xapisportskey": getApiSportsKey(),
+      "x-apisports-key": getApiSportsKey(),
     },
     cache: "no-store",
   });
@@ -108,11 +188,13 @@ export async function fetchApiFootballFixtures(params: {
   league?: number;
   season?: number;
   team?: number;
+  date?: string;
   from?: string;
   to?: string;
   timezone?: string;
   next?: number;
   last?: number;
+  live?: string;
 }): Promise<ApiFootballResponse<ApiFootballFixture>> {
   return apiFootballGet<ApiFootballFixture>("/fixtures", params);
 }
@@ -144,4 +226,25 @@ export async function fetchApiFootballHeadToHead(params: {
     h2h: `${params.firstTeamId}-${params.secondTeamId}`,
     timezone: params.timezone,
   });
+}
+
+export async function fetchApiFootballPredictions(
+  fixture: number
+): Promise<ApiFootballResponse<ApiFootballPrediction>> {
+  return apiFootballGet<ApiFootballPrediction>("/predictions", { fixture });
+}
+
+export async function fetchApiFootballLineups(
+  fixture: number
+): Promise<ApiFootballResponse<ApiFootballLineup>> {
+  return apiFootballGet<ApiFootballLineup>("/fixtures/lineups", { fixture });
+}
+
+export async function fetchApiFootballInjuries(params: {
+  fixture?: number;
+  team?: number;
+  date?: string;
+  timezone?: string;
+}): Promise<ApiFootballResponse<ApiFootballInjury>> {
+  return apiFootballGet<ApiFootballInjury>("/injuries", params);
 }
