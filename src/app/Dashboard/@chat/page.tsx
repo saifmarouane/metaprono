@@ -1112,11 +1112,36 @@ function TeamSearchSelect({
   isLoading: boolean;
 }) {
   const displayedCountries =
-    mode === "country" && query.trim()
+    query.trim()
       ? countries.filter((country) =>
           normalizeTeamLookup(country.name).includes(normalizeTeamLookup(query))
         )
       : countries;
+  const displayedLeagues =
+    mode === "team" && query.trim()
+      ? leagues.filter((league) =>
+          normalizeTeamLookup(league.name).includes(normalizeTeamLookup(query))
+        )
+      : leagues;
+  const displayedCities =
+    mode === "team" && query.trim()
+      ? cities.filter((city) =>
+          normalizeTeamLookup(city).includes(normalizeTeamLookup(query))
+        )
+      : cities;
+  const displayedOptions =
+    mode === "team" && query.trim()
+      ? options.filter((team) =>
+          [
+            team.name,
+            team.country ?? "",
+            team.city ?? "",
+            team.venue ?? "",
+          ].some((value) =>
+            normalizeTeamLookup(value).includes(normalizeTeamLookup(query))
+          )
+        )
+      : options;
 
   return (
     <div>
@@ -1289,12 +1314,12 @@ function TeamSearchSelect({
               </div>
             )}
 
-            {mode === "team" && leagues.length > 0 && (
+            {mode === "team" && displayedLeagues.length > 0 && (
               <div className="mb-2">
                 <p className="px-3 py-2 text-[11px] font-black uppercase text-slate-500">
                   Ligues
                 </p>
-                {leagues.map((league) => (
+                {displayedLeagues.map((league) => (
                   <button
                     key={league.id}
                     type="button"
@@ -1315,13 +1340,13 @@ function TeamSearchSelect({
               </div>
             )}
 
-            {mode === "team" && cities.length > 0 && (
+            {mode === "team" && displayedCities.length > 0 && (
               <div className="mb-2">
                 <p className="px-3 py-2 text-[11px] font-black uppercase text-slate-500">
                   Villes
                 </p>
                 <div className="flex flex-wrap gap-2 px-3 pb-2">
-                  {cities.map((city) => (
+                  {displayedCities.map((city) => (
                     <button
                       key={city}
                       type="button"
@@ -1335,12 +1360,12 @@ function TeamSearchSelect({
               </div>
             )}
 
-            {mode === "team" && options.length > 0 && (
+            {mode === "team" && displayedOptions.length > 0 && (
               <div>
                 <p className="px-3 py-2 text-[11px] font-black uppercase text-slate-500">
                   Equipes
                 </p>
-            {options.map((team) => (
+            {displayedOptions.map((team) => (
               <button
                 key={team.id}
                 type="button"
@@ -1368,9 +1393,9 @@ function TeamSearchSelect({
             {!isLoading &&
               (query.trim().length >= 1 || mode === "country") &&
               displayedCountries.length === 0 &&
-              leagues.length === 0 &&
-              cities.length === 0 &&
-              options.length === 0 && (
+              displayedLeagues.length === 0 &&
+              displayedCities.length === 0 &&
+              displayedOptions.length === 0 && (
                 <p className="rounded-lg border border-white/10 bg-black/15 p-3 text-sm text-slate-400">
                   Aucun resultat. Essaie une autre lettre, un pays rapide ou un nom de ligue.
                 </p>
@@ -1412,6 +1437,8 @@ export default function ChatSlotPage() {
   const [teamBCityFilter, setTeamBCityFilter] = useState<string | null>(null);
   const [teamAOptions, setTeamAOptions] = useState<TeamSearchOption[]>([]);
   const [teamBOptions, setTeamBOptions] = useState<TeamSearchOption[]>([]);
+  const [teamALoadedSearchKey, setTeamALoadedSearchKey] = useState<string | null>(null);
+  const [teamBLoadedSearchKey, setTeamBLoadedSearchKey] = useState<string | null>(null);
   const [teamASearchLoading, setTeamASearchLoading] = useState(false);
   const [teamBSearchLoading, setTeamBSearchLoading] = useState(false);
   const [prediction, setPrediction] = useState<PredictionData | null>(null);
@@ -1672,9 +1699,38 @@ export default function ChatSlotPage() {
       return;
     }
 
+    const trimmedQuery = teamA.trim();
+    if (teamAMode === "team" && trimmedQuery.length < 1) {
+      setTeamACountries([]);
+      setTeamALeagues([]);
+      setTeamACities([]);
+      setTeamAOptions([]);
+      setTeamALoadedSearchKey(null);
+      return;
+    }
+
+    const searchSeed =
+      teamAMode === "country" ? "" : normalizeTeamLookup(trimmedQuery).slice(0, 1);
+    const searchKey =
+      teamAMode === "country"
+        ? "countries:all"
+        : [
+            "team",
+            searchSeed,
+            teamACountryFilter ?? "",
+            teamALeagueFilter?.id ?? "",
+            teamALeagueFilter?.season ?? "",
+            teamACityFilter ?? "",
+          ].join(":");
+
+    if (teamALoadedSearchKey === searchKey) {
+      return;
+    }
+
     const timeoutId = window.setTimeout(() => {
+      setTeamALoadedSearchKey(searchKey);
       searchTeams({
-        query: teamAMode === "country" ? "" : teamA,
+        query: searchSeed,
         country: teamAMode === "country" ? null : teamACountryFilter,
         league: teamAMode === "country" ? null : teamALeagueFilter,
         city: teamAMode === "country" ? null : teamACityFilter,
@@ -1693,6 +1749,7 @@ export default function ChatSlotPage() {
     resolvedTeamA,
     teamAMode,
     teamA,
+    teamALoadedSearchKey,
     teamACountryFilter,
     teamALeagueFilter,
     teamACityFilter,
@@ -1707,9 +1764,38 @@ export default function ChatSlotPage() {
       return;
     }
 
+    const trimmedQuery = teamB.trim();
+    if (teamBMode === "team" && trimmedQuery.length < 1) {
+      setTeamBCountries([]);
+      setTeamBLeagues([]);
+      setTeamBCities([]);
+      setTeamBOptions([]);
+      setTeamBLoadedSearchKey(null);
+      return;
+    }
+
+    const searchSeed =
+      teamBMode === "country" ? "" : normalizeTeamLookup(trimmedQuery).slice(0, 1);
+    const searchKey =
+      teamBMode === "country"
+        ? "countries:all"
+        : [
+            "team",
+            searchSeed,
+            teamBCountryFilter ?? "",
+            teamBLeagueFilter?.id ?? "",
+            teamBLeagueFilter?.season ?? "",
+            teamBCityFilter ?? "",
+          ].join(":");
+
+    if (teamBLoadedSearchKey === searchKey) {
+      return;
+    }
+
     const timeoutId = window.setTimeout(() => {
+      setTeamBLoadedSearchKey(searchKey);
       searchTeams({
-        query: teamBMode === "country" ? "" : teamB,
+        query: searchSeed,
         country: teamBMode === "country" ? null : teamBCountryFilter,
         league: teamBMode === "country" ? null : teamBLeagueFilter,
         city: teamBMode === "country" ? null : teamBCityFilter,
@@ -1728,6 +1814,7 @@ export default function ChatSlotPage() {
     resolvedTeamB,
     teamBMode,
     teamB,
+    teamBLoadedSearchKey,
     teamBCountryFilter,
     teamBLeagueFilter,
     teamBCityFilter,
@@ -2035,6 +2122,7 @@ export default function ChatSlotPage() {
                     setTeamALeagues([]);
                     setTeamACities([]);
                     setTeamAOptions([]);
+                    setTeamALoadedSearchKey(null);
                   }}
                   query={teamA}
                   onQueryChange={(value) => {
@@ -2055,6 +2143,7 @@ export default function ChatSlotPage() {
                     setTeamALeagues([]);
                     setTeamACities([]);
                     setTeamAOptions([]);
+                    setTeamALoadedSearchKey(null);
                   }}
                   onCountrySelect={(country) => {
                     setTeamA(country.name);
@@ -2066,6 +2155,7 @@ export default function ChatSlotPage() {
                     setTeamALeagues([]);
                     setTeamACities([]);
                     setTeamAOptions([]);
+                    setTeamALoadedSearchKey(null);
                   }}
                   onNationalTeamSelect={(country) => {
                     const nationalTeam = createNationalTeamOption(country);
@@ -2078,6 +2168,7 @@ export default function ChatSlotPage() {
                     setTeamALeagues([]);
                     setTeamACities([]);
                     setTeamAOptions([]);
+                    setTeamALoadedSearchKey(null);
                   }}
                   onLeagueSelect={(league) => {
                     setTeamA(league.name);
@@ -2089,6 +2180,7 @@ export default function ChatSlotPage() {
                     setTeamALeagues([]);
                     setTeamACities([]);
                     setTeamAOptions([]);
+                    setTeamALoadedSearchKey(null);
                   }}
                   onCitySelect={(city) => {
                     setTeamA(city);
@@ -2097,6 +2189,7 @@ export default function ChatSlotPage() {
                     setTeamACountries([]);
                     setTeamALeagues([]);
                     setTeamAOptions([]);
+                    setTeamALoadedSearchKey(null);
                   }}
                   options={teamAOptions}
                   isLoading={teamASearchLoading}
@@ -2115,6 +2208,7 @@ export default function ChatSlotPage() {
                     setTeamBLeagues([]);
                     setTeamBCities([]);
                     setTeamBOptions([]);
+                    setTeamBLoadedSearchKey(null);
                   }}
                   query={teamB}
                   onQueryChange={(value) => {
@@ -2135,6 +2229,7 @@ export default function ChatSlotPage() {
                     setTeamBLeagues([]);
                     setTeamBCities([]);
                     setTeamBOptions([]);
+                    setTeamBLoadedSearchKey(null);
                   }}
                   onCountrySelect={(country) => {
                     setTeamB(country.name);
@@ -2146,6 +2241,7 @@ export default function ChatSlotPage() {
                     setTeamBLeagues([]);
                     setTeamBCities([]);
                     setTeamBOptions([]);
+                    setTeamBLoadedSearchKey(null);
                   }}
                   onNationalTeamSelect={(country) => {
                     const nationalTeam = createNationalTeamOption(country);
@@ -2158,6 +2254,7 @@ export default function ChatSlotPage() {
                     setTeamBLeagues([]);
                     setTeamBCities([]);
                     setTeamBOptions([]);
+                    setTeamBLoadedSearchKey(null);
                   }}
                   onLeagueSelect={(league) => {
                     setTeamB(league.name);
@@ -2169,6 +2266,7 @@ export default function ChatSlotPage() {
                     setTeamBLeagues([]);
                     setTeamBCities([]);
                     setTeamBOptions([]);
+                    setTeamBLoadedSearchKey(null);
                   }}
                   onCitySelect={(city) => {
                     setTeamB(city);
@@ -2177,6 +2275,7 @@ export default function ChatSlotPage() {
                     setTeamBCountries([]);
                     setTeamBLeagues([]);
                     setTeamBOptions([]);
+                    setTeamBLoadedSearchKey(null);
                   }}
                   options={teamBOptions}
                   isLoading={teamBSearchLoading}
