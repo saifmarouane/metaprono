@@ -111,6 +111,75 @@ type PredictionData = {
     count: number;
     matches: MatchPreview[];
   };
+  aiAnalysis?: {
+    provider: string | null;
+    text: string | null;
+    structured?: AiStructuredPrediction | null;
+    error: string | null;
+  };
+};
+
+type AiStructuredPrediction = {
+  verdict: {
+    winner: string;
+    summary: string;
+    confidence: number | null;
+    riskLevel: "low" | "medium" | "high";
+  };
+  probabilities: {
+    teamAWin: number | null;
+    draw: number | null;
+    teamBWin: number | null;
+    notes: string;
+  };
+  teams: Array<{
+    name: string;
+    formSummary: string;
+    strengths: string[];
+    weaknesses: string[];
+    tacticalIdentity: string;
+  }>;
+  lastMatches: Array<{
+    team: string;
+    date: string;
+    opponent: string;
+    score: string;
+    competition: string;
+    notes: string;
+  }>;
+  keyPlayers: Array<{
+    team: string;
+    name: string;
+    role: string;
+    recentImpact: string;
+    status: string;
+  }>;
+  absences: Array<{
+    team: string;
+    name: string;
+    reason: string;
+    expectedImpact: string;
+    confidence: string;
+  }>;
+  gamePlans: Array<{
+    team: string;
+    formation: string;
+    attackingPlan: string;
+    defensivePlan: string;
+    keyDuel: string;
+  }>;
+  predictionFactors: Array<{
+    factor: string;
+    advantage: string;
+    impact: string;
+    evidence: string;
+  }>;
+  risks: string[];
+  sources: Array<{
+    title: string;
+    url: string;
+    note: string;
+  }>;
 };
 
 type TeamAnalytics = {
@@ -212,6 +281,7 @@ type UserActionHistoryItem = {
 
 type WorkspaceSection = "predictions" | "live" | "finished" | "upcoming" | "statistics";
 type PredictionTargetMode = "country" | "team";
+type ChatPanelMode = "chat" | "prediction";
 
 type TeamSearchOption = {
   id: number;
@@ -806,6 +876,379 @@ function TeamAnalyticsCard({ analytics }: { analytics: TeamAnalytics }) {
         </div>
       </div>
     </article>
+  );
+}
+
+function AiList({ title, items }: { title: string; items: string[] }) {
+  return (
+    <div className="rounded-lg border border-white/10 bg-black/15 p-3">
+      <p className="text-[11px] font-black uppercase text-slate-500">{title}</p>
+      <div className="mt-2 flex flex-wrap gap-2">
+        {items.length === 0 && (
+          <span className="text-xs text-slate-500">Non disponible</span>
+        )}
+        {items.map((item) => (
+          <span
+            key={item}
+            className="rounded-md border border-white/10 bg-white/[0.04] px-2 py-1 text-xs font-bold text-slate-200"
+          >
+            {item}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function AiProbabilityBar({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: number | null;
+  tone: string;
+}) {
+  if (value == null) {
+    return (
+      <div className="rounded-lg border border-white/10 bg-black/15 p-3">
+        <div className="flex items-center justify-between gap-3 text-xs font-black uppercase text-slate-300">
+          <span>{label}</span>
+          <span className="text-slate-500">Non disponible</span>
+        </div>
+      </div>
+    );
+  }
+
+  return <PercentBar label={label} value={value} tone={tone} />;
+}
+
+function AiAnalysisSection({ prediction }: { prediction: PredictionData }) {
+  const structured = prediction.aiAnalysis?.structured;
+
+  return (
+    <section className="rounded-xl border border-lime-300/20 bg-lime-300/[0.06] p-4 shadow-lg shadow-black/15">
+      <div className="mb-4 flex items-center gap-3">
+        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-lime-300/15 text-lime-100">
+          <Bot className="h-5 w-5" />
+        </div>
+        <div className="min-w-0">
+          <h3 className="font-black text-white">Prediction IA dediee</h3>
+          <p className="truncate text-xs text-lime-100/70">
+            {prediction.aiAnalysis?.provider
+              ? `Powered by ${prediction.aiAnalysis.provider}`
+              : "API-FOOTBALL utilise uniquement pour equipes et logos"}
+          </p>
+        </div>
+      </div>
+
+      {structured ? (
+        <div className="grid gap-4">
+          <div className="grid gap-3 lg:grid-cols-[1.1fr_0.9fr]">
+            <div className="rounded-xl border border-white/10 bg-black/20 p-4">
+              <p className="text-xs font-black uppercase text-lime-100/75">
+                Verdict IA
+              </p>
+              <h4 className="mt-2 text-xl font-black text-white">
+                {structured.verdict.winner}
+              </h4>
+              <p className="mt-2 text-sm leading-6 text-slate-200">
+                {structured.verdict.summary}
+              </p>
+              <div className="mt-4 grid grid-cols-2 gap-2">
+                <StatTile
+                  label="Confiance"
+                  value={
+                    structured.verdict.confidence == null
+                      ? "Non disponible"
+                      : `${structured.verdict.confidence}%`
+                  }
+                />
+                <StatTile
+                  label="Risque"
+                  value={structured.verdict.riskLevel}
+                />
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-white/10 bg-black/20 p-4">
+              <p className="text-xs font-black uppercase text-slate-500">
+                Probabilites IA
+              </p>
+              <div className="mt-4 grid gap-4">
+                <AiProbabilityBar
+                  label={`${prediction.teams.teamA.name} gagne`}
+                  value={structured.probabilities.teamAWin}
+                  tone="bg-emerald-300"
+                />
+                <AiProbabilityBar
+                  label="Egalite"
+                  value={structured.probabilities.draw}
+                  tone="bg-amber-300"
+                />
+                <AiProbabilityBar
+                  label={`${prediction.teams.teamB.name} gagne`}
+                  value={structured.probabilities.teamBWin}
+                  tone="bg-cyan-300"
+                />
+              </div>
+              <p className="mt-4 text-xs leading-5 text-slate-400">
+                {structured.probabilities.notes}
+              </p>
+            </div>
+          </div>
+
+          <div className="grid gap-3 lg:grid-cols-2">
+            {structured.teams.map((team) => (
+              <article
+                key={team.name}
+                className="rounded-xl border border-white/10 bg-[#10213d] p-4"
+              >
+                <h4 className="font-black text-white">{team.name}</h4>
+                <p className="mt-2 text-sm leading-6 text-slate-300">
+                  {team.formSummary}
+                </p>
+                <p className="mt-3 text-xs font-black uppercase text-cyan-100/75">
+                  Identite tactique
+                </p>
+                <p className="mt-1 text-sm leading-6 text-cyan-50/90">
+                  {team.tacticalIdentity}
+                </p>
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  <AiList title="Forces" items={team.strengths} />
+                  <AiList title="Faiblesses" items={team.weaknesses} />
+                </div>
+              </article>
+            ))}
+          </div>
+
+          <div className="rounded-xl border border-white/10 bg-[#0d1b33] p-4">
+            <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+              <h4 className="font-black text-white">10 derniers matchs joues</h4>
+              <p className="text-xs font-bold text-slate-500">
+                Jusqu'a 10 matchs par equipe selon les sources trouvees
+              </p>
+            </div>
+            <div className="mt-3 overflow-x-auto">
+              <table className="w-full min-w-[720px] text-left text-sm">
+                <thead className="text-xs uppercase text-slate-500">
+                  <tr className="border-b border-white/10">
+                    <th className="px-3 py-2">Equipe</th>
+                    <th className="px-3 py-2">Date</th>
+                    <th className="px-3 py-2">Adversaire</th>
+                    <th className="px-3 py-2">Score</th>
+                    <th className="px-3 py-2">Competition</th>
+                    <th className="px-3 py-2">Note</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {structured.lastMatches.map((match, index) => (
+                    <tr
+                      key={`${match.team}-${match.date}-${match.opponent}-${index}`}
+                      className="border-b border-white/5 text-slate-200"
+                    >
+                      <td className="px-3 py-2 font-bold">{match.team}</td>
+                      <td className="px-3 py-2 text-slate-400">{match.date}</td>
+                      <td className="px-3 py-2">{match.opponent}</td>
+                      <td className="px-3 py-2 font-black text-lime-100">
+                        {match.score}
+                      </td>
+                      <td className="px-3 py-2 text-slate-400">
+                        {match.competition}
+                      </td>
+                      <td className="px-3 py-2 text-slate-300">{match.notes}</td>
+                    </tr>
+                  ))}
+                  {structured.lastMatches.length === 0 && (
+                    <tr>
+                      <td className="px-3 py-4 text-slate-400" colSpan={6}>
+                        Derniers matchs non disponibles.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-cyan-300/15 bg-cyan-300/10 p-4">
+            <h4 className="font-black text-cyan-50">
+              Informations utilisees pour predire
+            </h4>
+            <div className="mt-3 grid gap-2 md:grid-cols-2">
+              {structured.predictionFactors.map((factor, index) => (
+                <div
+                  key={`${factor.factor}-${index}`}
+                  className="rounded-lg border border-cyan-300/15 bg-black/15 p-3"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="min-w-0 truncate text-sm font-black text-white">
+                      {factor.factor}
+                    </p>
+                    <span className="shrink-0 rounded-md bg-cyan-300/10 px-2 py-1 text-xs font-black text-cyan-100">
+                      {factor.impact}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-xs font-bold text-cyan-100/75">
+                    Avantage: {factor.advantage}
+                  </p>
+                  <p className="mt-2 text-sm leading-6 text-slate-200">
+                    {factor.evidence}
+                  </p>
+                </div>
+              ))}
+              {structured.predictionFactors.length === 0 && (
+                <p className="rounded-lg border border-cyan-300/15 bg-black/15 p-3 text-sm text-cyan-100/75 md:col-span-2">
+                  Facteurs non disponibles. L'IA n'a pas retourne de details
+                  exploitables.
+                </p>
+              )}
+            </div>
+          </div>
+
+          <div className="grid gap-4 xl:grid-cols-2">
+            <div className="rounded-xl border border-white/10 bg-[#0d1b33] p-4">
+              <h4 className="font-black text-white">Joueurs cles</h4>
+              <div className="mt-3 grid gap-2">
+                {structured.keyPlayers.map((player, index) => (
+                  <div
+                    key={`${player.team}-${player.name}-${index}`}
+                    className="rounded-lg border border-white/10 bg-black/15 p-3"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="min-w-0 truncate font-black text-white">
+                        {player.name}
+                      </p>
+                      <span className="shrink-0 rounded-md bg-cyan-300/10 px-2 py-1 text-xs font-black text-cyan-100">
+                        {player.status}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-xs font-bold text-slate-500">
+                      {player.team} · {player.role}
+                    </p>
+                    <p className="mt-2 text-sm leading-6 text-slate-300">
+                      {player.recentImpact}
+                    </p>
+                  </div>
+                ))}
+                {structured.keyPlayers.length === 0 && (
+                  <p className="text-sm text-slate-400">
+                    Joueurs cles non disponibles.
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-red-300/15 bg-red-400/10 p-4">
+              <h4 className="font-black text-red-100">Absences et blesses</h4>
+              <div className="mt-3 grid gap-2">
+                {structured.absences.map((absence, index) => (
+                  <div
+                    key={`${absence.team}-${absence.name}-${index}`}
+                    className="rounded-lg border border-red-300/15 bg-black/15 p-3"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="min-w-0 truncate font-black text-red-50">
+                        {absence.name}
+                      </p>
+                      <span className="shrink-0 rounded-md bg-red-300/10 px-2 py-1 text-xs font-black text-red-100">
+                        {absence.confidence}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-xs font-bold text-red-100/70">
+                      {absence.team} · {absence.reason}
+                    </p>
+                    <p className="mt-2 text-sm leading-6 text-red-50/85">
+                      {absence.expectedImpact}
+                    </p>
+                  </div>
+                ))}
+                {structured.absences.length === 0 && (
+                  <p className="text-sm text-red-100/75">
+                    Absences non disponibles ou non confirmees.
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="grid gap-4 lg:grid-cols-2">
+            {structured.gamePlans.map((plan) => (
+              <article
+                key={plan.team}
+                className="rounded-xl border border-white/10 bg-[#10213d] p-4"
+              >
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <h4 className="min-w-0 truncate font-black text-white">
+                    Plan de jeu: {plan.team}
+                  </h4>
+                  <span className="shrink-0 rounded-md border border-lime-300/20 bg-lime-300/10 px-2 py-1 text-xs font-black text-lime-100">
+                    {plan.formation}
+                  </span>
+                </div>
+                <div className="grid gap-3">
+                  <StatTile label="Offensif" value={plan.attackingPlan} />
+                  <StatTile label="Defensif" value={plan.defensivePlan} />
+                  <StatTile label="Duel cle" value={plan.keyDuel} />
+                </div>
+              </article>
+            ))}
+          </div>
+
+          <div className="grid gap-4 lg:grid-cols-2">
+            <div className="rounded-xl border border-amber-300/15 bg-amber-300/10 p-4">
+              <h4 className="font-black text-amber-100">Risques et limites</h4>
+              <ul className="mt-3 grid gap-2">
+                {structured.risks.map((risk) => (
+                  <li
+                    key={risk}
+                    className="rounded-lg border border-amber-300/15 bg-black/15 p-3 text-sm leading-6 text-amber-50/90"
+                  >
+                    {risk}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="rounded-xl border border-white/10 bg-black/15 p-4">
+              <h4 className="font-black text-white">Sources IA</h4>
+              <div className="mt-3 grid gap-2">
+                {structured.sources.map((source, index) => (
+                  <a
+                    key={`${source.url}-${index}`}
+                    href={source.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="rounded-lg border border-white/10 bg-white/[0.04] p-3 transition hover:bg-white/[0.08]"
+                  >
+                    <p className="truncate text-sm font-black text-cyan-100">
+                      {source.title}
+                    </p>
+                    <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-400">
+                      {source.note}
+                    </p>
+                  </a>
+                ))}
+                {structured.sources.length === 0 && (
+                  <p className="text-sm text-slate-400">
+                    Sources non disponibles.
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : prediction.aiAnalysis?.text ? (
+        <div className="whitespace-pre-wrap rounded-lg border border-white/10 bg-black/20 p-4 text-sm leading-7 text-slate-100">
+          {prediction.aiAnalysis.text}
+        </div>
+      ) : (
+        <p className="rounded-lg border border-amber-300/20 bg-amber-300/10 p-3 text-sm leading-6 text-amber-100">
+          Analyse IA non disponible
+          {prediction.aiAnalysis?.error ? `: ${prediction.aiAnalysis.error}` : "."}
+        </p>
+      )}
+    </section>
   );
 }
 
@@ -1446,10 +1889,16 @@ export default function ChatSlotPage() {
     type: "idle" | "loading" | "success" | "error";
     message: string;
   }>({ type: "idle", message: "" });
+  const [aiPrediction, setAiPrediction] = useState<PredictionData | null>(null);
+  const [aiPredictionStatus, setAiPredictionStatus] = useState<{
+    type: "idle" | "loading" | "success" | "error";
+    message: string;
+  }>({ type: "idle", message: "" });
   const [history, setHistory] = useState<UserActionHistoryItem[]>([]);
   const [historyLoaded, setHistoryLoaded] = useState(false);
   const [activeSection, setActiveSection] = useState<WorkspaceSection>("predictions");
   const [chatOpen, setChatOpen] = useState(false);
+  const [chatPanelMode, setChatPanelMode] = useState<ChatPanelMode>("chat");
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -1661,6 +2110,84 @@ export default function ChatSlotPage() {
       await loadPredictionHistory();
     } catch (error) {
       setPredictionStatus({
+        type: "error",
+        message: error instanceof Error ? error.message : "Erreur inconnue",
+      });
+    }
+  }
+
+  async function runAiPrediction(event: React.FormEvent) {
+    event.preventDefault();
+    const resolvedTeamA =
+      selectedTeamA ??
+      teamAOptions.find(
+        (team) => normalizeTeamLookup(team.name) === normalizeTeamLookup(teamA)
+      ) ??
+      null;
+    const resolvedTeamB =
+      selectedTeamB ??
+      teamBOptions.find(
+        (team) => normalizeTeamLookup(team.name) === normalizeTeamLookup(teamB)
+      ) ??
+      null;
+
+    if (resolvedTeamA && !selectedTeamA) {
+      setSelectedTeamA(resolvedTeamA);
+    }
+
+    if (resolvedTeamB && !selectedTeamB) {
+      setSelectedTeamB(resolvedTeamB);
+    }
+
+    if (!resolvedTeamA || !resolvedTeamB) {
+      setAiPredictionStatus({
+        type: "error",
+        message:
+          "Choisis deux equipes API. Ici API-FOOTBALL sert seulement aux equipes et logos.",
+      });
+      return;
+    }
+
+    setAiPredictionStatus({
+      type: "loading",
+      message: "L'IA cherche les resultats, blessures, joueurs et plan de jeu...",
+    });
+    setAiPrediction(null);
+
+    try {
+      const params = new URLSearchParams({
+        teamA: resolvedTeamA.name,
+        teamB: resolvedTeamB.name,
+      });
+      if (resolvedTeamA.id) {
+        params.set("teamAId", String(resolvedTeamA.id));
+        if (resolvedTeamA.logo) params.set("teamALogo", resolvedTeamA.logo);
+        if (resolvedTeamA.country) params.set("teamACountry", resolvedTeamA.country);
+      }
+      if (resolvedTeamB.id) {
+        params.set("teamBId", String(resolvedTeamB.id));
+        if (resolvedTeamB.logo) params.set("teamBLogo", resolvedTeamB.logo);
+        if (resolvedTeamB.country) params.set("teamBCountry", resolvedTeamB.country);
+      }
+
+      const response = await fetch(`/api/football/ai-predict?${params}`);
+      const result = (await response.json()) as
+        | ({ ok: true } & PredictionData)
+        | { ok?: false; error?: string };
+
+      if (!response.ok || result.ok !== true) {
+        throw new Error(
+          "error" in result && result.error ? result.error : "Erreur prediction IA"
+        );
+      }
+
+      setAiPrediction(result);
+      setAiPredictionStatus({
+        type: "success",
+        message: `Prediction IA prete pour ${result.teams.teamA.name} vs ${result.teams.teamB.name}.`,
+      });
+    } catch (error) {
+      setAiPredictionStatus({
         type: "error",
         message: error instanceof Error ? error.message : "Erreur inconnue",
       });
@@ -2498,7 +3025,9 @@ export default function ChatSlotPage() {
                                 {prediction.teams.teamA.name}
                               </p>
                               <p className="text-xs text-slate-500">
-                                {prediction.percentages.teamAWin}% victoire
+                                {prediction.percentages.source === "ai-web-search"
+                                  ? "Analyse IA"
+                                  : `${prediction.percentages.teamAWin}% victoire`}
                               </p>
                             </div>
                           </div>
@@ -2516,7 +3045,9 @@ export default function ChatSlotPage() {
                                 {prediction.teams.teamB.name}
                               </p>
                               <p className="text-xs text-slate-500">
-                                {prediction.percentages.teamBWin}% victoire
+                                {prediction.percentages.source === "ai-web-search"
+                                  ? "Analyse IA"
+                                  : `${prediction.percentages.teamBWin}% victoire`}
                               </p>
                             </div>
                           </div>
@@ -2530,11 +3061,19 @@ export default function ChatSlotPage() {
                         <p className="text-xs font-black uppercase text-slate-500">
                           Probabilites
                         </p>
-                        <div className="mt-4 grid gap-4">
-                          <PercentBar label={`${prediction.teams.teamA.name} gagne`} value={prediction.percentages.teamAWin} tone="bg-emerald-300" />
-                          <PercentBar label="Egalite" value={prediction.percentages.draw} tone="bg-amber-300" />
-                          <PercentBar label={`${prediction.teams.teamB.name} gagne`} value={prediction.percentages.teamBWin} tone="bg-cyan-300" />
-                        </div>
+                        {prediction.percentages.source === "ai-web-search" ? (
+                          <p className="mt-4 rounded-lg border border-lime-300/15 bg-lime-300/10 p-3 text-sm leading-6 text-lime-100">
+                            Les probabilites sont calculees et expliquees dans
+                            la prediction IA. API-FOOTBALL ne fournit ici que
+                            les equipes et logos.
+                          </p>
+                        ) : (
+                          <div className="mt-4 grid gap-4">
+                            <PercentBar label={`${prediction.teams.teamA.name} gagne`} value={prediction.percentages.teamAWin} tone="bg-emerald-300" />
+                            <PercentBar label="Egalite" value={prediction.percentages.draw} tone="bg-amber-300" />
+                            <PercentBar label={`${prediction.teams.teamB.name} gagne`} value={prediction.percentages.teamBWin} tone="bg-cyan-300" />
+                          </div>
+                        )}
                       </div>
                     </div>
                     {prediction.advice && (
@@ -2544,39 +3083,43 @@ export default function ChatSlotPage() {
                     )}
                   </div>
 
-                  <PredictionEvidenceSection prediction={prediction} />
-                  <TeamAnalyticsSection prediction={prediction} />
-                  <ExpectedLineupsSection prediction={prediction} />
+                  {prediction.percentages.source !== "ai-web-search" && (
+                    <>
+                      <PredictionEvidenceSection prediction={prediction} />
+                      <TeamAnalyticsSection prediction={prediction} />
+                      <ExpectedLineupsSection prediction={prediction} />
 
-                  <div className="rounded-xl border border-red-300/15 bg-red-400/10 p-4">
-                    <div className="mb-3 flex items-center gap-2 text-sm font-black text-red-100">
-                      <ShieldAlert className="h-4 w-4" />
-                      Joueurs blesses
-                    </div>
-                    <div className="grid gap-2 md:grid-cols-2">
-                      {prediction.injuries.length === 0 && (
-                        <p className="rounded-lg border border-white/10 bg-black/15 p-3 text-sm text-red-100/80 md:col-span-2">
-                          Aucun blesse retourne par API-FOOTBALL pour ce match.
-                        </p>
-                      )}
-                      {prediction.injuries.slice(0, 12).map((injury) => (
-                        <div key={`${injury.team?.id}-${injury.player?.id}-${injury.player?.name}`} className="rounded-lg border border-red-300/15 bg-black/15 p-3 text-sm">
-                          <div className="flex items-center gap-2">
-                            <TeamMark
-                              src={injury.team?.logo}
-                              name={injury.team?.name}
-                            />
-                            <p className="min-w-0 truncate font-black text-red-100">
-                              {injury.player?.name ?? "Joueur"}
-                            </p>
-                          </div>
-                          <p className="mt-1 text-xs text-red-100/80">
-                            {injury.team?.name ?? "Equipe"} · {injury.player?.type ?? "Absence"} · {injury.player?.reason ?? "Raison non precisee"}
-                          </p>
+                      <div className="rounded-xl border border-red-300/15 bg-red-400/10 p-4">
+                        <div className="mb-3 flex items-center gap-2 text-sm font-black text-red-100">
+                          <ShieldAlert className="h-4 w-4" />
+                          Joueurs blesses
                         </div>
-                      ))}
-                    </div>
-                  </div>
+                        <div className="grid gap-2 md:grid-cols-2">
+                          {prediction.injuries.length === 0 && (
+                            <p className="rounded-lg border border-white/10 bg-black/15 p-3 text-sm text-red-100/80 md:col-span-2">
+                              Aucun blesse retourne par API-FOOTBALL pour ce match.
+                            </p>
+                          )}
+                          {prediction.injuries.slice(0, 12).map((injury) => (
+                            <div key={`${injury.team?.id}-${injury.player?.id}-${injury.player?.name}`} className="rounded-lg border border-red-300/15 bg-black/15 p-3 text-sm">
+                              <div className="flex items-center gap-2">
+                                <TeamMark
+                                  src={injury.team?.logo}
+                                  name={injury.team?.name}
+                                />
+                                <p className="min-w-0 truncate font-black text-red-100">
+                                  {injury.player?.name ?? "Joueur"}
+                                </p>
+                              </div>
+                              <p className="mt-1 text-xs text-red-100/80">
+                                {injury.team?.name ?? "Equipe"} · {injury.player?.type ?? "Absence"} · {injury.player?.reason ?? "Raison non precisee"}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </>
               )}
             </div>
@@ -2686,12 +3229,18 @@ export default function ChatSlotPage() {
             initial={{ opacity: 0, y: 18, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 18, scale: 0.98 }}
-            className="fixed inset-x-3 bottom-3 z-50 flex max-h-[calc(100dvh-1.5rem)] min-h-[420px] flex-col overflow-hidden rounded-xl border border-white/10 bg-[#0d1b33] shadow-2xl shadow-black/50 sm:inset-x-auto sm:bottom-5 sm:right-5 sm:h-[560px] sm:w-[min(420px,calc(100vw-2.5rem))]"
+            className={`fixed inset-x-3 bottom-3 z-50 flex max-h-[calc(100dvh-1.5rem)] min-h-[420px] flex-col overflow-hidden rounded-xl border border-white/10 bg-[#0d1b33] shadow-2xl shadow-black/50 sm:inset-x-auto sm:bottom-5 sm:right-5 ${
+              chatPanelMode === "prediction"
+                ? "sm:h-[680px] sm:w-[min(760px,calc(100vw-2.5rem))]"
+                : "sm:h-[560px] sm:w-[min(420px,calc(100vw-2.5rem))]"
+            }`}
           >
             <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
               <div className="flex items-center gap-2">
                 <Bot className="h-5 w-5 text-lime-300" />
-                <h3 className="font-black text-white">Chat IA</h3>
+                <h3 className="font-black text-white">
+                  {chatPanelMode === "prediction" ? "Prediction IA" : "Chat IA"}
+                </h3>
               </div>
               <button
                 type="button"
@@ -2702,62 +3251,304 @@ export default function ChatSlotPage() {
                 <ChevronDown className="h-4 w-4" />
               </button>
             </div>
-            <div className="flex-1 overflow-y-auto px-4 py-4">
-              {messages.length === 0 && (
-                <div className="grid gap-2">
-                  {promptSuggestions.map((suggestion) => (
-                    <button
-                      key={suggestion}
-                      type="button"
-                      onClick={() => setInput(suggestion)}
-                      className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-left text-sm font-medium text-slate-200 hover:bg-white/10"
-                    >
-                      {suggestion}
-                    </button>
-                  ))}
+            <div className="grid grid-cols-2 gap-2 border-b border-white/10 p-3">
+              {[
+                ["chat", "Chat"],
+                ["prediction", "Prediction IA"],
+              ].map(([mode, label]) => (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => setChatPanelMode(mode as ChatPanelMode)}
+                  className={`rounded-lg px-3 py-2 text-sm font-black transition ${
+                    chatPanelMode === mode
+                      ? "bg-lime-300/15 text-lime-100"
+                      : "border border-white/10 bg-white/[0.04] text-slate-300 hover:bg-white/[0.08]"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {chatPanelMode === "chat" && (
+              <>
+                <div className="flex-1 overflow-y-auto px-4 py-4">
+                  {messages.length === 0 && (
+                    <div className="grid gap-2">
+                      {promptSuggestions.map((suggestion) => (
+                        <button
+                          key={suggestion}
+                          type="button"
+                          onClick={() => setInput(suggestion)}
+                          className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-left text-sm font-medium text-slate-200 hover:bg-white/10"
+                        >
+                          {suggestion}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  <div className="space-y-3">
+                    {messages.map((message) => (
+                      <div
+                        key={message.id}
+                        className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
+                      >
+                        <div
+                          className={`max-w-[86%] rounded-lg px-3 py-2 text-sm leading-6 ${
+                            message.role === "user"
+                              ? "bg-lime-400 text-white"
+                              : "border border-white/10 bg-white/[0.05] text-slate-100"
+                          }`}
+                        >
+                          {message.content}
+                          {message.isStreaming && <span className="ml-1 inline-block h-3 w-1 bg-current" />}
+                        </div>
+                      </div>
+                    ))}
+                    <div ref={messagesEndRef} />
+                  </div>
                 </div>
-              )}
-              <div className="space-y-3">
-                {messages.map((message) => (
-                  <div
-                    key={message.id}
-                    className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
-                  >
-                    <div
-                      className={`max-w-[86%] rounded-lg px-3 py-2 text-sm leading-6 ${
-                        message.role === "user"
-                          ? "bg-lime-400 text-white"
-                          : "border border-white/10 bg-white/[0.05] text-slate-100"
+                <form onSubmit={handleSubmit} className="border-t border-white/10 p-3">
+                  <div className="flex gap-2">
+                    <input
+                      ref={inputRef}
+                      value={input}
+                      onChange={(event) => setInput(event.target.value)}
+                      disabled={isLoading}
+                      placeholder="Question football..."
+                      className="min-w-0 flex-1 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none placeholder:text-slate-500 focus:border-lime-300/50"
+                    />
+                    <button
+                      type="submit"
+                      disabled={isLoading || !input.trim()}
+                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-lime-400 text-white hover:bg-lime-300 disabled:opacity-50"
+                      aria-label="Envoyer"
+                    >
+                      <Send className="h-4 w-4" />
+                    </button>
+                  </div>
+                </form>
+              </>
+            )}
+
+            {chatPanelMode === "prediction" && (
+              <div className="flex-1 overflow-y-auto p-4">
+                <form onSubmit={runAiPrediction} className="grid gap-4">
+                  <div className="grid gap-4 lg:grid-cols-2">
+                    <TeamSearchSelect
+                      label="Equipe ou pays A"
+                      mode={teamAMode}
+                      onModeChange={(mode) => {
+                        setTeamAMode(mode);
+                        setTeamA("");
+                        setSelectedTeamA(null);
+                        setTeamACountryFilter(null);
+                        setTeamALeagueFilter(null);
+                        setTeamACityFilter(null);
+                        setTeamACountries([]);
+                        setTeamALeagues([]);
+                        setTeamACities([]);
+                        setTeamAOptions([]);
+                        setTeamALoadedSearchKey(null);
+                      }}
+                      query={teamA}
+                      onQueryChange={(value) => {
+                        setTeamA(value);
+                        setSelectedTeamA(null);
+                        setTeamACountryFilter(null);
+                        setTeamALeagueFilter(null);
+                        setTeamACityFilter(null);
+                      }}
+                      selectedTeam={resolvedTeamA}
+                      countries={teamACountries}
+                      leagues={teamALeagues}
+                      cities={teamACities}
+                      onSelect={(team) => {
+                        setSelectedTeamA(team);
+                        setTeamA(team.name);
+                        setTeamACountries([]);
+                        setTeamALeagues([]);
+                        setTeamACities([]);
+                        setTeamAOptions([]);
+                        setTeamALoadedSearchKey(null);
+                      }}
+                      onCountrySelect={(country) => {
+                        setTeamA(country.name);
+                        setSelectedTeamA(null);
+                        setTeamACountryFilter(country.name);
+                        setTeamALeagueFilter(null);
+                        setTeamACityFilter(null);
+                        setTeamACountries([]);
+                        setTeamALeagues([]);
+                        setTeamACities([]);
+                        setTeamAOptions([]);
+                        setTeamALoadedSearchKey(null);
+                      }}
+                      onNationalTeamSelect={(country) => {
+                        const nationalTeam = createNationalTeamOption(country);
+                        setSelectedTeamA(nationalTeam);
+                        setTeamA(nationalTeam.name);
+                        setTeamACountryFilter(country.name);
+                        setTeamALeagueFilter(null);
+                        setTeamACityFilter(null);
+                        setTeamACountries([]);
+                        setTeamALeagues([]);
+                        setTeamACities([]);
+                        setTeamAOptions([]);
+                        setTeamALoadedSearchKey(null);
+                      }}
+                      onLeagueSelect={(league) => {
+                        setTeamA(league.name);
+                        setSelectedTeamA(null);
+                        setTeamALeagueFilter(league);
+                        setTeamACountryFilter(league.country);
+                        setTeamACityFilter(null);
+                        setTeamACountries([]);
+                        setTeamALeagues([]);
+                        setTeamACities([]);
+                        setTeamAOptions([]);
+                        setTeamALoadedSearchKey(null);
+                      }}
+                      onCitySelect={(city) => {
+                        setTeamA(city);
+                        setSelectedTeamA(null);
+                        setTeamACityFilter(city);
+                        setTeamACountries([]);
+                        setTeamALeagues([]);
+                        setTeamAOptions([]);
+                        setTeamALoadedSearchKey(null);
+                      }}
+                      options={teamAOptions}
+                      isLoading={teamASearchLoading}
+                    />
+                    <TeamSearchSelect
+                      label="Equipe ou pays B"
+                      mode={teamBMode}
+                      onModeChange={(mode) => {
+                        setTeamBMode(mode);
+                        setTeamB("");
+                        setSelectedTeamB(null);
+                        setTeamBCountryFilter(null);
+                        setTeamBLeagueFilter(null);
+                        setTeamBCityFilter(null);
+                        setTeamBCountries([]);
+                        setTeamBLeagues([]);
+                        setTeamBCities([]);
+                        setTeamBOptions([]);
+                        setTeamBLoadedSearchKey(null);
+                      }}
+                      query={teamB}
+                      onQueryChange={(value) => {
+                        setTeamB(value);
+                        setSelectedTeamB(null);
+                        setTeamBCountryFilter(null);
+                        setTeamBLeagueFilter(null);
+                        setTeamBCityFilter(null);
+                      }}
+                      selectedTeam={resolvedTeamB}
+                      countries={teamBCountries}
+                      leagues={teamBLeagues}
+                      cities={teamBCities}
+                      onSelect={(team) => {
+                        setSelectedTeamB(team);
+                        setTeamB(team.name);
+                        setTeamBCountries([]);
+                        setTeamBLeagues([]);
+                        setTeamBCities([]);
+                        setTeamBOptions([]);
+                        setTeamBLoadedSearchKey(null);
+                      }}
+                      onCountrySelect={(country) => {
+                        setTeamB(country.name);
+                        setSelectedTeamB(null);
+                        setTeamBCountryFilter(country.name);
+                        setTeamBLeagueFilter(null);
+                        setTeamBCityFilter(null);
+                        setTeamBCountries([]);
+                        setTeamBLeagues([]);
+                        setTeamBCities([]);
+                        setTeamBOptions([]);
+                        setTeamBLoadedSearchKey(null);
+                      }}
+                      onNationalTeamSelect={(country) => {
+                        const nationalTeam = createNationalTeamOption(country);
+                        setSelectedTeamB(nationalTeam);
+                        setTeamB(nationalTeam.name);
+                        setTeamBCountryFilter(country.name);
+                        setTeamBLeagueFilter(null);
+                        setTeamBCityFilter(null);
+                        setTeamBCountries([]);
+                        setTeamBLeagues([]);
+                        setTeamBCities([]);
+                        setTeamBOptions([]);
+                        setTeamBLoadedSearchKey(null);
+                      }}
+                      onLeagueSelect={(league) => {
+                        setTeamB(league.name);
+                        setSelectedTeamB(null);
+                        setTeamBLeagueFilter(league);
+                        setTeamBCountryFilter(league.country);
+                        setTeamBCityFilter(null);
+                        setTeamBCountries([]);
+                        setTeamBLeagues([]);
+                        setTeamBCities([]);
+                        setTeamBOptions([]);
+                        setTeamBLoadedSearchKey(null);
+                      }}
+                      onCitySelect={(city) => {
+                        setTeamB(city);
+                        setSelectedTeamB(null);
+                        setTeamBCityFilter(city);
+                        setTeamBCountries([]);
+                        setTeamBLeagues([]);
+                        setTeamBOptions([]);
+                        setTeamBLoadedSearchKey(null);
+                      }}
+                      options={teamBOptions}
+                      isLoading={teamBSearchLoading}
+                    />
+                  </div>
+
+                  {aiPredictionStatus.message && (
+                    <p
+                      className={`rounded-lg border px-3 py-2 text-xs font-bold ${
+                        aiPredictionStatus.type === "error"
+                          ? "border-red-300/20 bg-red-400/10 text-red-100"
+                          : aiPredictionStatus.type === "success"
+                            ? "border-lime-300/25 bg-lime-300/10 text-lime-100"
+                            : "border-cyan-300/20 bg-cyan-300/10 text-cyan-100"
                       }`}
                     >
-                      {message.content}
-                      {message.isStreaming && <span className="ml-1 inline-block h-3 w-1 bg-current" />}
-                    </div>
+                      {aiPredictionStatus.message}
+                    </p>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={
+                      aiPredictionStatus.type === "loading" ||
+                      !resolvedTeamA ||
+                      !resolvedTeamB
+                    }
+                    className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-lime-400 px-4 text-sm font-black text-white transition hover:bg-lime-300 disabled:cursor-not-allowed disabled:opacity-55"
+                  >
+                    {aiPredictionStatus.type === "loading" ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Sparkles className="h-4 w-4" />
+                    )}
+                    Generer prediction IA complete
+                  </button>
+                </form>
+
+                {aiPrediction && (
+                  <div className="mt-4 grid gap-4">
+                    <AiAnalysisSection prediction={aiPrediction} />
                   </div>
-                ))}
-                <div ref={messagesEndRef} />
+                )}
               </div>
-            </div>
-            <form onSubmit={handleSubmit} className="border-t border-white/10 p-3">
-              <div className="flex gap-2">
-                <input
-                  ref={inputRef}
-                  value={input}
-                  onChange={(event) => setInput(event.target.value)}
-                  disabled={isLoading}
-                  placeholder="Question football..."
-                  className="min-w-0 flex-1 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none placeholder:text-slate-500 focus:border-lime-300/50"
-                />
-                <button
-                  type="submit"
-                  disabled={isLoading || !input.trim()}
-                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-lime-400 text-white hover:bg-lime-300 disabled:opacity-50"
-                  aria-label="Envoyer"
-                >
-                  <Send className="h-4 w-4" />
-                </button>
-              </div>
-            </form>
+            )}
           </motion.section>
         )}
       </AnimatePresence>
