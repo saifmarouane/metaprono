@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import {
   FOOTBALL_COLLECTION_GUIDES,
+  MANUAL_INSERT_COLLECTION_NAMES,
   getFieldGuides,
   getFootballCollectionGuide,
   type FieldOption,
@@ -19,19 +20,47 @@ import {
 
 type AdminInsertFormProps = {
   defaultCollection?: string | null;
+  collectionNames?: string[];
+  redirectAfterSubmit?: string;
 };
 
 type FieldValues = Record<string, string | boolean>;
+type OptionState = Record<string, FieldOption[]>;
+
+function isApiOptionSource(source?: string): boolean {
+  return Boolean(source?.startsWith("api-football-"));
+}
+
+function shouldStartEmpty(field: ReturnType<typeof getFieldGuides>[number]) {
+  return (
+    isApiOptionSource(field.optionSource) ||
+    field.key === "id" ||
+    field.key.endsWith("_logo") ||
+    field.key === "player_photo" ||
+    field.key === "venue_id" ||
+    field.key === "bookmaker_id" ||
+    field.key === "bet_id"
+  );
+}
 
 function getInitialValues(collectionName: string): FieldValues {
   const guide =
     getFootballCollectionGuide(collectionName) ?? FOOTBALL_COLLECTION_GUIDES[0];
+  const fields = getFieldGuides(guide);
 
   return Object.fromEntries(
-    Object.entries(guide.sample).map(([key, value]) => [
-      key,
-      typeof value === "boolean" ? value : String(value),
-    ])
+    fields.map((field) => {
+      const value = guide.sample[field.key];
+
+      return [
+        field.key,
+        shouldStartEmpty(field)
+          ? ""
+          : typeof value === "boolean"
+            ? value
+            : String(value),
+      ];
+    })
   );
 }
 
@@ -90,21 +119,65 @@ function toDateTimeLocal(value: string | boolean): string {
   return value.slice(0, 16);
 }
 
-export function AdminInsertForm({ defaultCollection }: AdminInsertFormProps) {
+function toFieldValue(value: unknown): string {
+  if (value === undefined || value === null) return "";
+  return String(value);
+}
+
+function getOptionStateKey(fieldKey: string, source?: string): string {
+  return isApiOptionSource(source) ? fieldKey : source ?? fieldKey;
+}
+
+function isHiddenTechnicalField(
+  field: ReturnType<typeof getFieldGuides>[number],
+  collectionName: string
+) {
+  if (field.key === "id") {
+    return !(
+      collectionName === "football_fixtures" &&
+      field.optionSource === "api-football-fixtures"
+    );
+  }
+
+  return (
+    field.key.endsWith("_logo") ||
+    field.key === "player_photo" ||
+    field.key === "venue_id" ||
+    field.key === "bookmaker_id" ||
+    field.key === "bet_id" ||
+    field.key === "odd_raw"
+  );
+}
+
+export function AdminInsertForm({
+  defaultCollection,
+  collectionNames,
+  redirectAfterSubmit,
+}: AdminInsertFormProps) {
   const router = useRouter();
+  const availableGuides = useMemo(() => {
+    const allowedCollectionNames = collectionNames?.length
+      ? collectionNames
+      : MANUAL_INSERT_COLLECTION_NAMES;
+
+    return FOOTBALL_COLLECTION_GUIDES.filter((guide) =>
+      allowedCollectionNames.includes(guide.name)
+    );
+  }, [collectionNames]);
   const initialCollection =
     defaultCollection &&
-    FOOTBALL_COLLECTION_GUIDES.some((guide) => guide.name === defaultCollection)
+    availableGuides.some((guide) => guide.name === defaultCollection)
       ? defaultCollection
-      : FOOTBALL_COLLECTION_GUIDES[0].name;
+      : availableGuides[0]?.name ?? FOOTBALL_COLLECTION_GUIDES[0].name;
   const [collection, setCollection] = useState(initialCollection);
   const [values, setValues] = useState<FieldValues>(() =>
     getInitialValues(initialCollection)
   );
   const [showJson, setShowJson] = useState(false);
-  const [dynamicOptions, setDynamicOptions] = useState<
-    Record<string, FieldOption[]>
-  >({});
+  const [dynamicOptions, setDynamicOptions] = useState<OptionState>({});
+  const [apiOptions, setApiOptions] = useState<OptionState>({});
+  const [apiSearches, setApiSearches] = useState<Record<string, string>>({});
+  const [apiLoading, setApiLoading] = useState<Record<string, boolean>>({});
   const [status, setStatus] = useState<{
     type: "idle" | "success" | "error";
     message: string;
@@ -115,6 +188,13 @@ export function AdminInsertForm({ defaultCollection }: AdminInsertFormProps) {
     [collection]
   );
   const fieldGuides = useMemo(() => getFieldGuides(guide), [guide]);
+  const fieldLabelByKey = useMemo(
+    () =>
+      Object.fromEntries(
+        fieldGuides.map((field) => [field.key, field.label])
+      ) as Record<string, string>,
+    [fieldGuides]
+  );
   const document = useMemo(
     () => buildDocument(collection, values),
     [collection, values]
@@ -126,7 +206,10 @@ export function AdminInsertForm({ defaultCollection }: AdminInsertFormProps) {
       ...new Set(
         fieldGuides
           .map((field) => field.optionSource)
-          .filter((source): source is string => Boolean(source))
+          .filter(
+            (source): source is string =>
+              Boolean(source) && !isApiOptionSource(source)
+          )
       ),
     ];
 
@@ -152,6 +235,70 @@ export function AdminInsertForm({ defaultCollection }: AdminInsertFormProps) {
     }
   }, [fieldGuides, dynamicOptions]);
 
+  useEffect(() => {
+    const apiFields = fieldGuides.filter((field) =>
+      isApiOptionSource(field.optionSource)
+    );
+    const timers: Array<ReturnType<typeof setTimeout>> = [];
+
+    for (const field of apiFields) {
+      const source = field.optionSource;
+      if (!source) continue;
+
+      const stateKey = getOptionStateKey(field.key, source);
+      const search = apiSearches[stateKey] ?? "";
+      const params = new URLSearchParams({
+        source,
+        q: search,
+        season: String(values.season ?? ""),
+        leagueId: String(values.league_id ?? ""),
+        teamId: String(values.team_id ?? ""),
+        country: String(values.country_name ?? values.country ?? ""),
+      });
+
+      const timer = setTimeout(() => {
+        setApiLoading((current) => ({ ...current, [stateKey]: true }));
+
+        fetch(`/api/football/agent-options?${params}`)
+          .then((response) => response.json())
+          .then((result: { ok?: boolean; options?: FieldOption[] }) => {
+            setApiOptions((currentOptions) => ({
+              ...currentOptions,
+              [stateKey]:
+                result.ok && Array.isArray(result.options)
+                  ? result.options
+                  : [],
+            }));
+          })
+          .catch(() => {
+            setApiOptions((currentOptions) => ({
+              ...currentOptions,
+              [stateKey]: [],
+            }));
+          })
+          .finally(() => {
+            setApiLoading((current) => ({ ...current, [stateKey]: false }));
+          });
+      }, 350);
+
+      timers.push(timer);
+    }
+
+    return () => {
+      for (const timer of timers) {
+        clearTimeout(timer);
+      }
+    };
+  }, [
+    fieldGuides,
+    apiSearches,
+    values.country,
+    values.country_name,
+    values.league_id,
+    values.season,
+    values.team_id,
+  ]);
+
   function handleCollectionChange(nextCollection: string) {
     setCollection(nextCollection);
     setValues(getInitialValues(nextCollection));
@@ -168,6 +315,7 @@ export function AdminInsertForm({ defaultCollection }: AdminInsertFormProps) {
 
   function handleSelectField(fieldKey: string, option: FieldOption) {
     updateField(fieldKey, option.value);
+    const meta = option.meta ?? {};
 
     if (collection === "football_countries" && fieldKey === "name") {
       if (typeof option.meta?.code === "string") {
@@ -177,6 +325,65 @@ export function AdminInsertForm({ defaultCollection }: AdminInsertFormProps) {
       if (typeof option.meta?.flag === "string") {
         updateField("flag", option.meta.flag);
       }
+    }
+
+    if (fieldKey === "league_id") {
+      updateField("league_name", toFieldValue(meta.leagueName));
+      updateField("league_logo", toFieldValue(meta.leagueLogo));
+      updateField("league_country", toFieldValue(meta.leagueCountry));
+      if (meta.season) updateField("season", toFieldValue(meta.season));
+    }
+
+    if (fieldKey === "home_team_id") {
+      updateField("home_team_name", toFieldValue(meta.teamName));
+      updateField("home_team_logo", toFieldValue(meta.teamLogo));
+      updateField("venue_id", toFieldValue(meta.venueId));
+    }
+
+    if (fieldKey === "away_team_id") {
+      updateField("away_team_name", toFieldValue(meta.teamName));
+      updateField("away_team_logo", toFieldValue(meta.teamLogo));
+    }
+
+    if (fieldKey === "team_id") {
+      updateField("team_name", toFieldValue(meta.teamName));
+      updateField("team_logo", toFieldValue(meta.teamLogo));
+    }
+
+    if (fieldKey === "player_id") {
+      updateField("player_name", toFieldValue(meta.playerName));
+      updateField("player_photo", toFieldValue(meta.playerPhoto));
+      if (meta.playerPosition) updateField("position", toFieldValue(meta.playerPosition));
+    }
+
+    if (fieldKey === "assist_player_id") {
+      updateField("assist_player_name", toFieldValue(meta.playerName));
+    }
+
+    if (fieldKey === "fixture_id" || (collection === "football_fixtures" && fieldKey === "id")) {
+      updateField(fieldKey, option.value);
+      updateField("fixture_id", option.value);
+      if (collection === "football_fixtures") {
+        updateField("id", option.value);
+      }
+      updateField("league_id", toFieldValue(meta.leagueId));
+      updateField("league_name", toFieldValue(meta.leagueName));
+      updateField("league_country", toFieldValue(meta.leagueCountry));
+      updateField("league_logo", toFieldValue(meta.leagueLogo));
+      updateField("season", toFieldValue(meta.season));
+      updateField("round", toFieldValue(meta.round));
+      updateField("home_team_id", toFieldValue(meta.homeTeamId));
+      updateField("home_team_name", toFieldValue(meta.homeTeamName));
+      updateField("home_team_logo", toFieldValue(meta.homeTeamLogo));
+      updateField("away_team_id", toFieldValue(meta.awayTeamId));
+      updateField("away_team_name", toFieldValue(meta.awayTeamName));
+      updateField("away_team_logo", toFieldValue(meta.awayTeamLogo));
+      updateField("venue_id", toFieldValue(meta.venueId));
+      updateField("timezone", toFieldValue(meta.timezone));
+      updateField("fixture_date", toFieldValue(meta.fixtureDate));
+      updateField("status_short", toFieldValue(meta.statusShort));
+      updateField("goals_home", toFieldValue(meta.goalsHome));
+      updateField("goals_away", toFieldValue(meta.goalsAway));
     }
   }
 
@@ -222,7 +429,10 @@ export function AdminInsertForm({ defaultCollection }: AdminInsertFormProps) {
         message: `${result.insertedCount ?? 0} document(s) insere(s).`,
       });
       setValues(getInitialValues(collection));
-      router.push(`/admin?collection=${encodeURIComponent(collection)}&limit=25`);
+      router.push(
+        redirectAfterSubmit ??
+          `/admin?collection=${encodeURIComponent(collection)}&limit=25`
+      );
       router.refresh();
     } catch (error) {
       setStatus({
@@ -258,7 +468,7 @@ export function AdminInsertForm({ defaultCollection }: AdminInsertFormProps) {
             onChange={(event) => handleCollectionChange(event.target.value)}
             className="w-full rounded-lg border border-white/10 bg-[#11274c] px-3 py-3 text-sm font-bold text-white outline-none focus:border-lime-300/50 focus:ring-2 focus:ring-lime-300/20"
           >
-            {FOOTBALL_COLLECTION_GUIDES.map((collectionGuide) => (
+            {availableGuides.map((collectionGuide) => (
               <option key={collectionGuide.name} value={collectionGuide.name}>
                 {collectionGuide.title} · {collectionGuide.name}
               </option>
@@ -278,7 +488,7 @@ export function AdminInsertForm({ defaultCollection }: AdminInsertFormProps) {
                 key={field}
                 className="rounded-md bg-lime-300/15 px-2 py-1 text-xs font-black text-lime-200"
               >
-                {field}
+                {fieldLabelByKey[field] ?? field}
               </span>
             ))}
           </div>
@@ -293,12 +503,26 @@ export function AdminInsertForm({ defaultCollection }: AdminInsertFormProps) {
           </div>
           <div className="grid gap-3 md:grid-cols-2">
             {fieldGuides.map((field) => {
+              if (isHiddenTechnicalField(field, collection)) {
+                return null;
+              }
+
               const isRequired = guide.requiredFields.includes(field.key);
               const value = values[field.key] ?? "";
+              const optionStateKey = getOptionStateKey(
+                field.key,
+                field.optionSource
+              );
+              const usesApiOptions = isApiOptionSource(field.optionSource);
               const options =
                 field.options ??
-                (field.optionSource ? dynamicOptions[field.optionSource] : []);
-              const hasSelectOptions = options && options.length > 0;
+                (usesApiOptions
+                  ? apiOptions[optionStateKey]
+                  : field.optionSource
+                    ? dynamicOptions[field.optionSource]
+                    : []) ??
+                [];
+              const hasSelectOptions = options.length > 0;
 
               return (
                 <div
@@ -321,7 +545,53 @@ export function AdminInsertForm({ defaultCollection }: AdminInsertFormProps) {
                     )}
                   </label>
 
-                  {field.type === "boolean" ? (
+                  {usesApiOptions && (
+                    <input
+                      type="search"
+                      value={apiSearches[optionStateKey] ?? ""}
+                      onChange={(event) =>
+                        setApiSearches((currentSearches) => ({
+                          ...currentSearches,
+                          [optionStateKey]: event.target.value,
+                        }))
+                      }
+                      placeholder={
+                        field.optionSource === "api-football-fixtures"
+                          ? "Choisir ligue + saison, puis chercher le match"
+                          : "Rechercher dans API-FOOTBALL"
+                      }
+                      className="mb-2 w-full rounded-lg border border-cyan-300/20 bg-cyan-300/10 px-3 py-2 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-300/50 focus:ring-2 focus:ring-cyan-300/20"
+                    />
+                  )}
+
+                  {usesApiOptions ? (
+                    <select
+                      id={`field-${field.key}`}
+                      value={String(value)}
+                      onChange={(event) => {
+                        const selectedOption = options.find(
+                          (option) => option.value === event.target.value
+                        );
+
+                        if (selectedOption) {
+                          handleSelectField(field.key, selectedOption);
+                        } else {
+                          updateField(field.key, "");
+                        }
+                      }}
+                      required={isRequired}
+                      className="w-full rounded-lg border border-white/10 bg-[#11274c] px-3 py-2 text-sm text-white outline-none transition focus:border-lime-300/50 focus:ring-2 focus:ring-lime-300/20"
+                    >
+                      <option value="">
+                        Selectionner {field.label.toLowerCase()}
+                      </option>
+                      {options.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  ) : field.type === "boolean" ? (
                     <button
                       id={`field-${field.key}`}
                       type="button"
@@ -396,7 +666,21 @@ export function AdminInsertForm({ defaultCollection }: AdminInsertFormProps) {
                       {field.help}
                     </p>
                   )}
-                  {field.optionSource && !hasSelectOptions && (
+                  {usesApiOptions && apiLoading[optionStateKey] && (
+                    <p className="mt-2 text-xs leading-5 text-cyan-200">
+                      Recherche API-FOOTBALL en cours...
+                    </p>
+                  )}
+                  {usesApiOptions &&
+                    !apiLoading[optionStateKey] &&
+                    !hasSelectOptions && (
+                      <p className="mt-2 text-xs leading-5 text-amber-300/80">
+                        Aucun resultat API charge. Pour les matchs, choisis
+                        d&apos;abord la competition et la saison. Pour les joueurs,
+                        choisis d&apos;abord l&apos;equipe.
+                      </p>
+                    )}
+                  {field.optionSource && !usesApiOptions && !hasSelectOptions && (
                     <p className="mt-2 text-xs leading-5 text-amber-300/80">
                       Aucune option chargee pour ce champ. Tu peux saisir la
                       valeur manuellement, puis remplir la table source plus

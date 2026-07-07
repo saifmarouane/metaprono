@@ -51,13 +51,27 @@ async function main() {
   const agentPage = await request(`${baseUrl}/agent`, {}, login.cookie);
   const adminPage = await request(`${baseUrl}/admin`, {}, login.cookie);
   const insertPayload = {
+    collection: "football_fixtures",
+    document: JSON.stringify({
+      id: testId,
+      league_id: 61,
+      league_name: "Agent Test League",
+      season: 2026,
+      home_team_id: 1001,
+      home_team_name: `Agent Home ${testId}`,
+      away_team_id: 1002,
+      away_team_name: `Agent Away ${testId}`,
+      fixture_date: "2026-01-18T20:45:00.000Z",
+      status_short: "NS",
+      home_scorers: "Agent Home Scorer, Agent Second Scorer",
+      away_scorers: "Agent Away Scorer",
+    }),
+  };
+  const blockedReferencePayload = {
     collection: "football_teams",
     document: JSON.stringify({
       id: testId,
-      name: `Agent Insert Test ${testId}`,
-      code: "AGT",
-      country_name: "Testland",
-      national: false,
+      name: `Agent Blocked Reference ${testId}`,
     }),
   };
   const insert = await request(
@@ -69,11 +83,20 @@ async function main() {
     },
     login.cookie
   );
+  const blockedReferenceInsert = await request(
+    `${baseUrl}/api/admin/insert`,
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(blockedReferencePayload),
+    },
+    login.cookie
+  );
   const insertBody = JSON.parse(insert.body);
 
   const client = new MongoClient(readMongoUri());
   await client.connect();
-  const collection = client.db("aura_sadaqa").collection("football_teams");
+  const collection = client.db("aura_sadaqa").collection("football_fixtures");
   const found = await collection.findOne({ id: testId });
   await collection.deleteOne({ id: testId });
   await client.close();
@@ -86,6 +109,7 @@ async function main() {
       [303, 307, 308].includes(adminPage.status) &&
       insert.status === 200 &&
       insertBody.ok === true &&
+      blockedReferenceInsert.status === 403 &&
       Boolean(found),
     login: {
       status: login.status,
@@ -105,6 +129,9 @@ async function main() {
       insertedCount: insertBody.insertedCount,
       found: Boolean(found),
     },
+    blockedReferenceInsert: {
+      status: blockedReferenceInsert.status,
+    },
   };
 
   console.log(JSON.stringify(result, null, 2));
@@ -123,4 +150,3 @@ main().catch((error) => {
   );
   process.exitCode = 1;
 });
-

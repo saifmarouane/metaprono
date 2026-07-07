@@ -10,17 +10,12 @@ import {
 import {
   type FootballCollectionGuide,
   FOOTBALL_COLLECTION_GUIDES,
+  MANUAL_INSERT_COLLECTION_NAMES,
   getFieldGuides,
 } from "@/lib/football-collection-guides";
 import { BrandLogo } from "@/components/BrandLogo";
 
 const fillOrder = [
-  "football_countries",
-  "football_leagues",
-  "football_league_seasons",
-  "football_venues",
-  "football_teams",
-  "football_players",
   "football_fixtures",
   "football_fixture_lineups",
   "football_fixture_events",
@@ -32,10 +27,9 @@ const fillOrder = [
 ];
 
 const relationNotes = [
-  "Commence toujours par les tables de reference : pays, competitions, saisons, stades, equipes et joueurs.",
-  "Les champs avec _id doivent correspondre a un document deja insere dans la table referencee.",
-  "Utilise les selects quand ils existent : pays, ligues, equipes, matchs, joueurs, statut de match, type de cote.",
-  "Pour un match, verifie que league_id, home_team_id, away_team_id et venue_id existent avant insertion.",
+  "Les pays, competitions, saisons, stades, equipes et joueurs viennent d'API-FOOTBALL : ne les insere pas manuellement.",
+  "Utilise les selects API quand ils existent : ligues, equipes, matchs, joueurs, statut de match, type de cote.",
+  "Pour un match, choisis la competition, la saison et le match depuis API-FOOTBALL pour remplir les IDs, noms et logos.",
   "Pour que l'IA reponde bien, privilegie des noms complets, dates correctes, scores, statuts et cotes numeriques.",
 ];
 
@@ -50,7 +44,10 @@ function formatValue(value: unknown): string {
 export default function DocumentationPage() {
   const orderedGuides = fillOrder
     .map((name) => FOOTBALL_COLLECTION_GUIDES.find((guide) => guide.name === name))
-    .filter((guide): guide is FootballCollectionGuide => Boolean(guide));
+    .filter(
+      (guide): guide is FootballCollectionGuide =>
+        guide !== undefined && MANUAL_INSERT_COLLECTION_NAMES.includes(guide.name)
+    );
 
   return (
     <main className="min-h-screen bg-[#11274c] text-white">
@@ -82,9 +79,9 @@ export default function DocumentationPage() {
             Comment remplir les tables football.
           </h1>
           <p className="mt-4 max-w-3xl text-base leading-7 text-slate-300 sm:text-lg">
-            Cette page explique l'ordre d'insertion, les relations importantes
-            et les champs a remplir dans l'admin ou l'espace agent. Elle suit
-            les memes guides que les formulaires premium d'insertion.
+            Cette page explique l&apos;ordre d&apos;insertion, les relations importantes
+            et les champs a remplir dans l&apos;admin ou l&apos;espace agent. Elle suit
+            les memes guides que les formulaires premium d&apos;insertion.
           </p>
         </div>
       </section>

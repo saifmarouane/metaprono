@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { AdminInsertForm } from "@/components/admin/AdminInsertForm";
 import { BrandLogo } from "@/components/BrandLogo";
+import { AGENT_INSERT_COLLECTION_NAMES } from "@/lib/football-collection-guides";
 
 type AgentWorkspaceProps = {
   user: {
@@ -539,8 +540,8 @@ export function AgentWorkspace({ user }: AgentWorkspaceProps) {
               Role agent
             </p>
             <p className={`mt-2 text-sm leading-6 ${classes.muted}`}>
-              Tu peux inserer les donnees football. La visualisation complete
-              des tables reste reservee a l'admin.
+              Tu peux inserer uniquement les donnees metier. Les pays,
+              competitions, equipes, stades et joueurs viennent d&apos;API-FOOTBALL.
             </p>
           </div>
 
@@ -616,7 +617,7 @@ export function AgentWorkspace({ user }: AgentWorkspaceProps) {
               </div>
               <div className="grid grid-cols-3 gap-2 text-center">
                 {[
-                  ["Tables", "14"],
+                  ["Tables", String(AGENT_INSERT_COLLECTION_NAMES.length)],
                   ["Mode", mode === "standard" ? "STD" : "Light"],
                   ["Acces", "Insert"],
                 ].map(([label, value]) => (
@@ -636,7 +637,11 @@ export function AgentWorkspace({ user }: AgentWorkspaceProps) {
 
           {activeView === "insert" && (
             <div className={`rounded-xl border p-5 ${classes.panel}`}>
-              <AdminInsertForm defaultCollection="football_fixtures" />
+              <AdminInsertForm
+                defaultCollection="football_fixtures"
+                collectionNames={AGENT_INSERT_COLLECTION_NAMES}
+                redirectAfterSubmit="/agent"
+              />
             </div>
           )}
 
@@ -647,7 +652,7 @@ export function AgentWorkspace({ user }: AgentWorkspaceProps) {
                 <h2 className="font-black">API Football</h2>
               </div>
               <p className={`mb-5 text-sm leading-6 ${classes.muted}`}>
-                La cle reste cote serveur. L'agent envoie seulement les filtres,
+                La cle reste cote serveur. L&apos;agent envoie seulement les filtres,
                 puis Next.js ajoute le header xapisportskey.
               </p>
 
@@ -920,7 +925,7 @@ export function AgentWorkspace({ user }: AgentWorkspaceProps) {
                   <div>
                     <h3 className="font-black">Guide endpoints API-FOOTBALL</h3>
                     <p className={`mt-1 text-sm ${classes.muted}`}>
-                      Chaque bloc explique quoi saisir dans l'interface, quels
+                      Chaque bloc explique quoi saisir dans l&apos;interface, quels
                       parametres envoyer et ou stocker les donnees dans MongoDB.
                     </p>
                   </div>
@@ -1077,8 +1082,8 @@ export function AgentWorkspace({ user }: AgentWorkspaceProps) {
               <div className="grid gap-3 md:grid-cols-3">
                 {[
                   ["Permission", "Insertion uniquement"],
-                  ["Collections", "Football autorisees"],
-                  ["Validation", "Admin supervise"],
+                  ["Collections", "Matchs et stats"],
+                  ["References", "API-FOOTBALL"],
                 ].map(([label, value]) => (
                   <div
                     key={label}

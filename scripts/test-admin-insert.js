@@ -49,13 +49,20 @@ async function main() {
   });
 
   const insertPayload = {
-    collection: "football_teams",
+    collection: "football_fixtures",
     document: JSON.stringify({
       id: testId,
-      name: `Admin Insert Test ${testId}`,
-      code: "AIT",
-      country_name: "Testland",
-      national: false,
+      league_id: 61,
+      league_name: "Admin Test League",
+      season: 2026,
+      home_team_id: 2001,
+      home_team_name: `Admin Home ${testId}`,
+      away_team_id: 2002,
+      away_team_name: `Admin Away ${testId}`,
+      fixture_date: "2026-01-18T20:45:00.000Z",
+      status_short: "NS",
+      home_scorers: "Admin Home Scorer, Admin Second Scorer",
+      away_scorers: "Admin Away Scorer",
     }),
   };
   const insert = await request(
@@ -73,11 +80,11 @@ async function main() {
   await client.connect();
   const found = await client
     .db("aura_sadaqa")
-    .collection("football_teams")
+    .collection("football_fixtures")
     .findOne({ id: testId });
   await client
     .db("aura_sadaqa")
-    .collection("football_teams")
+    .collection("football_fixtures")
     .deleteOne({ id: testId });
   await client.close();
 
@@ -109,4 +116,3 @@ main().catch((error) => {
   );
   process.exitCode = 1;
 });
-

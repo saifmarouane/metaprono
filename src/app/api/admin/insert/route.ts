@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getMongoDb } from "@/lib/mongodb";
-import { canInsertData } from "@/lib/admin-auth";
-import { FOOTBALL_COLLECTION_NAMES } from "@/lib/football-collection-guides";
+import { getAuthenticatedUser } from "@/lib/admin-auth";
+import {
+  AGENT_INSERT_COLLECTION_NAMES,
+  MANUAL_INSERT_COLLECTION_NAMES,
+} from "@/lib/football-collection-guides";
 
 function addTimestamps(document: Record<string, unknown>) {
   const now = new Date();
@@ -14,7 +17,9 @@ function addTimestamps(document: Record<string, unknown>) {
 }
 
 export async function POST(req: NextRequest) {
-  if (!(await canInsertData())) {
+  const user = await getAuthenticatedUser();
+
+  if (!user || (user.role !== "admin" && user.role !== "agent")) {
     return NextResponse.json(
       { ok: false, error: "Unauthorized" },
       { status: 401 }
@@ -25,10 +30,28 @@ export async function POST(req: NextRequest) {
   const collection = String(body.collection ?? "");
   const rawDocument = String(body.document ?? "");
 
-  if (!FOOTBALL_COLLECTION_NAMES.includes(collection)) {
+  if (!MANUAL_INSERT_COLLECTION_NAMES.includes(collection)) {
     return NextResponse.json(
-      { ok: false, error: "Collection is not allowed" },
-      { status: 400 }
+      {
+        ok: false,
+        error:
+          "Collection is reserved for API-FOOTBALL reference data and cannot be inserted manually",
+      },
+      { status: user.role === "agent" ? 403 : 400 }
+    );
+  }
+
+  if (
+    user.role === "agent" &&
+    !AGENT_INSERT_COLLECTION_NAMES.includes(collection)
+  ) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error:
+          "Collection is reserved for API-FOOTBALL reference data and cannot be inserted manually by an agent",
+      },
+      { status: 403 }
     );
   }
 

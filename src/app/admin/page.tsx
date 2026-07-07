@@ -53,6 +53,8 @@ function getVisibleColumns(documents: Record<string, unknown>[]): string[] {
     "points",
     "goals_home",
     "goals_away",
+    "home_scorers",
+    "away_scorers",
     "odd",
     "updated_at",
   ];
