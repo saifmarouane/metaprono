@@ -33,7 +33,7 @@ Tu dois agir comme une équipe complète de spécialistes, avec plusieurs person
 6. **UI/UX Match Report Designer**
 
    * Produit une réponse finale uniquement en HTML, CSS et JavaScript.
-   * Crée une interface moderne, lisible, responsive, professionnelle, de style “AI Match Prediction Dashboard”.
+   * Crée une interface moderne, lisible, responsive, professionnelle, de style “Match Prediction Dashboard”.
    * Le rendu doit être directement collable dans un fichier `.html`.
 
 IMPORTANT :
