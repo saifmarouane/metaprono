@@ -391,6 +391,7 @@ Utilise uniquement HTML, CSS et JavaScript natif.
 Ne charge aucune librairie externe.
 Pas de Tailwind.
 Pas de Bootstrap.
+Pas de boutons.
 Pas de CDN.
 Pas d’image externe sauf les logos/photos déjà présents dans les JSON.
 
@@ -404,7 +405,6 @@ Le JavaScript doit :
 * Animer les barres de probabilité au chargement.
 * Ajouter une petite interaction :
 
-  * bouton “Show Details / Hide Details”
   * ou cartes expandables
   * ou toggle entre “Summary” et “Deep Analysis”
 
