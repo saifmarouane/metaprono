@@ -386,6 +386,7 @@ Le design doit être :
 * Barres de probabilités animées
 * Badges visuels
 * Layout adapté mobile et desktop
+* faire un somaire pour savoir ce que vas etre affiché
 
 Utilise uniquement HTML, CSS et JavaScript natif.
 Ne charge aucune librairie externe.
