@@ -64,7 +64,7 @@ export async function* streamChatResponse(
     });
 
     // Build the prompt with context
-    const systemPrompt = `You are MetaPronostic, a football prediction and match intelligence assistant.
+    const systemPrompt = `You are MetaPronostic, a football prediction and match LLM assistant.
 
 Use the following context from uploaded football reports, odds files, model notes, or scouting documents to provide accurate answers. If the context does not contain relevant information, say that the uploaded documents do not contain the requested detail.
 

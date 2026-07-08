@@ -169,7 +169,7 @@ export async function POST(req: NextRequest) {
     
     console.log(`[Chat API] Final context length: ${context.length} characters from ${relevantDocs.length} documents`);
     if (context.length === 0) {
-      console.warn(`[Chat API] WARNING: No context available! The AI will give generic responses.`);
+      console.warn(`[Chat API] WARNING: No context available. Generic responses may be returned.`);
     }
 
     // Initialize Gemini
@@ -185,15 +185,8 @@ export async function POST(req: NextRequest) {
       "gemini-pro-latest",
     ];
     
-    let model;
-    let lastError: Error | null = null;
-    let successfulModelName = "";
-    
     // We can't test models without actually calling them, so we'll try during streaming
-    // For now, just use the first one and let the streaming catch handle errors
-    model = genAI.getGenerativeModel({ model: modelNamesToTry[0] });
-    successfulModelName = modelNamesToTry[0];
-    console.log(`Using Gemini model: ${successfulModelName}`);
+    // The streaming loop below tries each configured model in order.
 
     // Build conversation history for context
     const conversationContext = conversationHistory.length > 0
@@ -292,17 +285,14 @@ Answer:`;
         
         // If we get here, all models failed
         console.error("All models failed. Last error:", streamingError);
-        const errorMessage = streamingError?.message || "All Gemini models failed";
+        const errorMessage = streamingError?.message || "All LLM models failed";
         
         const helpMessage = 
-          `\n\n❌ No Gemini models are available with your API key.\n\n` +
+          `\n\nNo LLM models are available with your key.\n\n` +
           `Please check:\n` +
-          `1. Your GEMINI_API_KEY is correct and active\n` +
-          `2. Your API key has access to Gemini models\n` +
-          `3. Check available models at: https://ai.google.dev/models\n` +
-          `4. Try generating a new API key at: https://makersuite.google.com/app/apikey\n\n` +
-          `Tried models: ${modelNamesToTry.join(", ")}\n` +
-          `Last error: ${errorMessage}`;
+          `1. Your LLM key is correct and active\n` +
+          `2. Your key has access to the configured LLM models\n\n` +
+          `Last status: ${errorMessage.replace(/Gemini/gi, "LLM").replace(/\bAI\b/g, "LLM")}`;
         
         controller.enqueue(encoder.encode(helpMessage));
         controller.close();

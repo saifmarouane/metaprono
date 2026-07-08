@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
         error:
           error instanceof Error
             ? error.message
-            : "Team statistics AI analysis failed",
+            : "Team statistics LLM analysis failed",
       },
       { status: 500 }
     );

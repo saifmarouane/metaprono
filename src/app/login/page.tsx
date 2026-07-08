@@ -83,17 +83,17 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
                 Un seul login pour tous les roles.
               </h2>
               <p className="mt-4 text-sm leading-6 text-slate-300">
-                Entre ton email et ton mot de passe. L'application detecte
+                Entre ton email et ton mot de passe. L&apos;application detecte
                 automatiquement si tu es admin, agent ou utilisateur valide du
-                chat IA.
+                chat LLM.
               </p>
             </div>
             <div className="mt-8 rounded-lg border border-cyan-300/15 bg-cyan-300/10 p-4">
               <div className="flex gap-3">
                 <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-cyan-300" />
                 <p className="text-sm leading-6 text-slate-200">
-                  Les nouveaux utilisateurs peuvent demander l'acces au chat.
-                  L'admin doit ensuite valider le compte dans le dashboard.
+                  Les nouveaux utilisateurs peuvent demander l&apos;acces au chat.
+                  L&apos;admin doit ensuite valider le compte dans le dashboard.
                 </p>
               </div>
             </div>
@@ -161,7 +161,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             <div className="rounded-xl border border-white/10 bg-[#0d1b33] p-4 shadow-2xl shadow-black/30 sm:p-5">
               <div className="mb-5 flex items-center gap-2">
                 <UserPlus className="h-5 w-5 text-cyan-300" />
-                <h2 className="font-black">Demander l'acces chat</h2>
+                <h2 className="font-black">Demander l&apos;acces chat</h2>
               </div>
               <form action="/api/chat-auth/register" method="post" className="space-y-4">
                 <div>
@@ -232,7 +232,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
               href="/"
               className="text-sm font-semibold text-slate-400 transition hover:text-white"
             >
-              Retour a l'accueil
+              Retour a l&apos;accueil
             </Link>
           </div>
         </div>

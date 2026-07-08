@@ -21,8 +21,8 @@ export default function PendingApprovalPage() {
           <div className="flex gap-3">
             <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-amber-200" />
             <p className="text-sm leading-6 text-slate-200">
-              Ton compte est cree, mais le chat IA reste bloque jusqu'a ce que
-              l'admin le valide dans le dashboard admin.
+              Ton compte est cree, mais le chat LLM reste bloque jusqu&apos;a ce que
+              l&apos;admin le valide dans le dashboard admin.
             </p>
           </div>
         </div>

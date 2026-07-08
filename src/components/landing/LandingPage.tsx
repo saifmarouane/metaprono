@@ -287,7 +287,7 @@ export default function LandingPage({ authUser }: LandingPageProps) {
               className="mt-5 max-w-2xl text-base leading-7 text-slate-300 sm:mt-6 sm:text-xl sm:leading-8"
             >
               Analyse les matchs, détecte les signaux forts et interroge ta base
-              football avec une IA connectée aux fixtures, classements, joueurs,
+              football avec un LLM connecte aux fixtures, classements, joueurs,
               blessures et cotes.
             </motion.p>
             <motion.div
@@ -299,7 +299,7 @@ export default function LandingPage({ authUser }: LandingPageProps) {
                 href="/Dashboard"
                 className="inline-flex items-center justify-center gap-2 rounded-lg bg-lime-400 px-6 py-3 font-black text-white transition hover:bg-lime-300"
               >
-                Chat avec l'IA
+                Chat avec le LLM
                 <ArrowRight className="h-5 w-5" />
               </Link>
               <a
@@ -391,7 +391,7 @@ export default function LandingPage({ authUser }: LandingPageProps) {
               <div className="rounded-lg border border-white/10 bg-[#11274c]/88 p-3 backdrop-blur-xl sm:p-4">
                 <div className="mb-3 flex items-center justify-between gap-3">
                   <p className="text-xs font-black uppercase text-slate-400">
-                    Timeline IA
+                    Timeline LLM
                   </p>
                   <span className="rounded-md bg-lime-300/15 px-2 py-1 text-xs font-black text-lime-200">
                     Live
@@ -448,7 +448,7 @@ export default function LandingPage({ authUser }: LandingPageProps) {
             className="max-w-2xl"
           >
             <h2 className="text-3xl font-black text-white sm:text-4xl">
-              Un cockpit pour décider avant le coup d'envoi.
+              Un cockpit pour décider avant le coup d&apos;envoi.
             </h2>
             <p className="mt-4 text-slate-300">
               MetaPronostic croise les données structurées MongoDB et les
@@ -484,7 +484,7 @@ export default function LandingPage({ authUser }: LandingPageProps) {
         <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[0.8fr_1fr]">
           <div>
             <h2 className="text-3xl font-black text-white sm:text-4xl">
-              Collections football prêtes pour l'IA.
+              Collections football pretes pour les LLMs.
             </h2>
             <p className="mt-4 leading-7 text-slate-300">
               Le front est aligné avec les collections API-FOOTBALL importées
@@ -514,7 +514,7 @@ export default function LandingPage({ authUser }: LandingPageProps) {
           </Link>
           <p className="text-sm text-slate-400">
             © {new Date().getFullYear()} MetaPronostic. Football prediction
-            intelligence.
+            lecture LLM.
           </p>
         </div>
       </footer>

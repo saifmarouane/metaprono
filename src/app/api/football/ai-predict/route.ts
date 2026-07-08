@@ -4,8 +4,15 @@ import { getCurrentChatAccess } from "@/lib/chat-users";
 import { type ApiFootballTeam, searchApiFootballTeams } from "@/lib/api-football";
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-4.1-mini";
+const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-5.5";
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+
+function normalizeLlmErrorMessage(message: string): string {
+  return message
+    .replace(/OpenAI/gi, "LLM")
+    .replace(/Gemini/gi, "LLM")
+    .replace(/\bAI\b/g, "LLM");
+}
 
 type AiStructuredPrediction = {
   verdict: {
@@ -132,7 +139,7 @@ function buildAiPrompt(input: {
   teamB: { id: number; name: string; country: string | null; logo: string | null };
   timezone: string;
 }) {
-  return `Tu es MetaPronostic AI, analyste football. Tu dois chercher toi-meme les donnees recentes sur le web et produire une prediction football complete.
+  return `Tu es MetaPronostic LLM, analyste football. Tu dois chercher toi-meme les donnees recentes sur le web et produire une prediction football complete.
 
 Contrainte importante:
 - API-FOOTBALL est utilisee uniquement pour identifier les equipes et leurs logos.
@@ -241,7 +248,7 @@ function extractJsonObject(text: string): unknown {
   const end = withoutFence.lastIndexOf("}");
 
   if (start === -1 || end === -1 || end <= start) {
-    throw new Error("AI response did not contain JSON");
+    throw new Error("LLM response did not contain JSON");
   }
 
   return JSON.parse(withoutFence.slice(start, end + 1));
@@ -269,7 +276,7 @@ function normalizeStructuredPrediction(value: unknown): AiStructuredPrediction {
       teamAWin: parseNullablePercent(input.probabilities?.teamAWin),
       draw: parseNullablePercent(input.probabilities?.draw),
       teamBWin: parseNullablePercent(input.probabilities?.teamBWin),
-      notes: input.probabilities?.notes ?? "Probabilites estimees par l'IA.",
+      notes: input.probabilities?.notes ?? "Probabilites estimees par le LLM.",
     },
     teams: Array.isArray(input.teams) ? input.teams : [],
     lastMatches: Array.isArray(input.lastMatches)
@@ -318,7 +325,9 @@ async function generateAiAnalysis(input: {
       };
 
       if (!response.ok) {
-        throw new Error(result.error?.message ?? "OpenAI AI prediction failed");
+        throw new Error(
+          normalizeLlmErrorMessage(result.error?.message ?? "LLM prediction failed")
+        );
       }
 
       const text =
@@ -338,22 +347,25 @@ async function generateAiAnalysis(input: {
           structured = normalizeStructuredPrediction(extractJsonObject(text));
         } catch (error) {
           parseError =
-            error instanceof Error ? error.message : "AI JSON parsing failed";
+            error instanceof Error ? error.message : "LLM JSON parsing failed";
         }
       }
 
       return {
-        provider: `OpenAI ${OPENAI_MODEL} + web_search`,
+        provider: "LLM web search",
         text,
         structured,
         error: parseError,
       };
     } catch (error) {
       return {
-        provider: `OpenAI ${OPENAI_MODEL} + web_search`,
+        provider: "LLM web search",
         text: null,
         structured: null,
-        error: error instanceof Error ? error.message : "OpenAI AI prediction failed",
+        error:
+          error instanceof Error
+            ? normalizeLlmErrorMessage(error.message)
+            : "LLM prediction failed",
       };
     }
   }
@@ -371,21 +383,24 @@ async function generateAiAnalysis(input: {
         structured = normalizeStructuredPrediction(extractJsonObject(text));
       } catch (error) {
         parseError =
-          error instanceof Error ? error.message : "AI JSON parsing failed";
+          error instanceof Error ? error.message : "LLM JSON parsing failed";
       }
 
       return {
-        provider: "Gemini 2.5 Flash",
+        provider: "LLM",
         text,
         structured,
         error: parseError,
       };
     } catch (error) {
       return {
-        provider: "Gemini 2.5 Flash",
+        provider: "LLM",
         text: null,
         structured: null,
-        error: error instanceof Error ? error.message : "Gemini AI prediction failed",
+        error:
+          error instanceof Error
+            ? normalizeLlmErrorMessage(error.message)
+            : "LLM prediction failed",
       };
     }
   }
@@ -394,7 +409,7 @@ async function generateAiAnalysis(input: {
     provider: null,
     text: null,
     structured: null,
-    error: "No AI key configured. Set OPENAI_API_KEY or GEMINI_API_KEY.",
+    error: "No LLM key configured.",
   };
 }
 
@@ -460,7 +475,7 @@ export async function GET(req: NextRequest) {
         teamAWin: aiAnalysis.structured?.probabilities.teamAWin ?? 0,
         draw: aiAnalysis.structured?.probabilities.draw ?? 0,
         teamBWin: aiAnalysis.structured?.probabilities.teamBWin ?? 0,
-        source: "ai-web-search",
+        source: "llm-web-search",
       },
       advice: null,
       winner: null,
@@ -482,8 +497,8 @@ export async function GET(req: NextRequest) {
         ok: false,
         error:
           error instanceof Error
-            ? error.message
-            : "AI prediction request failed",
+            ? normalizeLlmErrorMessage(error.message)
+            : "LLM prediction request failed",
       },
       { status: 500 }
     );

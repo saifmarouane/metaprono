@@ -11,7 +11,6 @@ import {
   Clock3,
   History,
   Loader2,
-  MessageCircle,
   RefreshCw,
   Search,
   Send,
@@ -1175,10 +1174,10 @@ function AiAnalysisSection({ prediction }: { prediction: PredictionData }) {
           <Bot className="h-5 w-5" />
         </div>
         <div className="min-w-0">
-          <h3 className="font-black text-white">Prediction IA dediee</h3>
+          <h3 className="font-black text-white">Prediction LLM dediee</h3>
           <p className="truncate text-xs text-lime-100/70">
             {prediction.aiAnalysis?.provider
-              ? `Powered by ${prediction.aiAnalysis.provider}`
+              ? "Pipeline LLM actif"
               : "API-FOOTBALL utilise uniquement pour equipes et logos"}
           </p>
         </div>
@@ -1189,7 +1188,7 @@ function AiAnalysisSection({ prediction }: { prediction: PredictionData }) {
           <div className="grid gap-3 lg:grid-cols-[1.1fr_0.9fr]">
             <div className="rounded-xl border border-white/10 bg-black/20 p-4">
               <p className="text-xs font-black uppercase text-lime-100/75">
-                Verdict IA
+                Verdict LLM
               </p>
               <h4 className="mt-2 text-xl font-black text-white">
                 {structured.verdict.winner}
@@ -1215,7 +1214,7 @@ function AiAnalysisSection({ prediction }: { prediction: PredictionData }) {
 
             <div className="rounded-xl border border-white/10 bg-black/20 p-4">
               <p className="text-xs font-black uppercase text-slate-500">
-                Probabilites IA
+                Probabilites LLM
               </p>
               <div className="mt-4 grid gap-4">
                 <AiProbabilityBar
@@ -1341,7 +1340,7 @@ function AiAnalysisSection({ prediction }: { prediction: PredictionData }) {
               ))}
               {structured.predictionFactors.length === 0 && (
                 <p className="rounded-lg border border-cyan-300/15 bg-black/15 p-3 text-sm text-cyan-100/75 md:col-span-2">
-                  Facteurs non disponibles. L&apos;IA n&apos;a pas retourne de details
+                  Facteurs non disponibles. Le LLM n&apos;a pas retourne de details
                   exploitables.
                 </p>
               )}
@@ -1453,7 +1452,7 @@ function AiAnalysisSection({ prediction }: { prediction: PredictionData }) {
             </div>
 
             <div className="rounded-xl border border-white/10 bg-black/15 p-4">
-              <h4 className="font-black text-white">Sources IA</h4>
+              <h4 className="font-black text-white">Sources LLM</h4>
               <div className="mt-3 grid gap-2">
                 {structured.sources.map((source, index) => (
                   <a
@@ -1486,7 +1485,7 @@ function AiAnalysisSection({ prediction }: { prediction: PredictionData }) {
         </div>
       ) : (
         <p className="rounded-lg border border-amber-300/20 bg-amber-300/10 p-3 text-sm leading-6 text-amber-100">
-          Analyse IA non disponible
+          Analyse LLM non disponible
           {prediction.aiAnalysis?.error ? `: ${prediction.aiAnalysis.error}` : "."}
         </p>
       )}
@@ -1979,7 +1978,6 @@ export default function ChatSlotPage() {
     useState<TeamStatisticsComparisonData | null>(null);
   const [statisticsAiHtml, setStatisticsAiHtml] = useState("");
   const [statisticsAiRawResponse, setStatisticsAiRawResponse] = useState("");
-  const [statisticsAiSentPrompt, setStatisticsAiSentPrompt] = useState("");
   const [historyHtmlPreview, setHistoryHtmlPreview] = useState("");
   const [statisticsAiStatus, setStatisticsAiStatus] = useState<{
     type: "idle" | "loading" | "success" | "error";
@@ -2196,7 +2194,6 @@ export default function ChatSlotPage() {
     setStatisticsReport(null);
     setStatisticsAiHtml("");
     setStatisticsAiRawResponse("");
-    setStatisticsAiSentPrompt("");
     setStatisticsAiStatus({ type: "idle", message: "" });
 
     try {
@@ -2267,11 +2264,10 @@ export default function ChatSlotPage() {
 
     setStatisticsAiStatus({
       type: "loading",
-      message: "Generation HTML IA...",
+      message: "Generation HTML LLM...",
     });
     setStatisticsAiHtml("");
     setStatisticsAiRawResponse("");
-    setStatisticsAiSentPrompt("");
 
     try {
       const response = await fetch("/api/football/analyze-statistics", {
@@ -2290,7 +2286,7 @@ export default function ChatSlotPage() {
         throw new Error(
           "error" in result && result.error
             ? result.error
-            : "Erreur analyse IA"
+            : "Erreur analyse LLM"
         );
       }
 
@@ -2298,13 +2294,12 @@ export default function ChatSlotPage() {
         result.analysis.outputHtml ??
         normalizeAiHtmlResponse(result.analysis.outputText);
       setStatisticsAiRawResponse(result.analysis.outputText);
-      setStatisticsAiSentPrompt(result.analysis.sentPrompt ?? "");
       setStatisticsAiHtml(renderedHtml);
       setStatisticsAiStatus({
         type: result.actionSaveError ? "error" : "success",
         message: result.actionSaveError
-          ? `HTML IA genere, mais non sauvegarde dans l'historique: ${result.actionSaveError}`
-          : "HTML IA genere et sauvegarde dans l'historique.",
+          ? `HTML LLM genere, mais non sauvegarde dans l'historique: ${result.actionSaveError}`
+          : "HTML LLM genere et sauvegarde dans l'historique.",
       });
       setHistoryLoaded(false);
       await reloadPredictionHistoryAfterSave();
@@ -2350,7 +2345,7 @@ export default function ChatSlotPage() {
 
     setAiPredictionStatus({
       type: "loading",
-      message: "L'IA cherche les resultats, blessures, joueurs et plan de jeu...",
+      message: "Le LLM cherche les resultats, blessures, joueurs et plan de jeu...",
     });
     setAiPrediction(null);
 
@@ -2377,14 +2372,14 @@ export default function ChatSlotPage() {
 
       if (!response.ok || result.ok !== true) {
         throw new Error(
-          "error" in result && result.error ? result.error : "Erreur prediction IA"
+          "error" in result && result.error ? result.error : "Erreur prediction LLM"
         );
       }
 
       setAiPrediction(result);
       setAiPredictionStatus({
         type: "success",
-        message: `Prediction IA prete pour ${result.teams.teamA.name} vs ${result.teams.teamB.name}.`,
+        message: `Prediction LLM prete pour ${result.teams.teamA.name} vs ${result.teams.teamB.name}.`,
       });
     } catch (error) {
       setAiPredictionStatus({
@@ -2713,14 +2708,14 @@ export default function ChatSlotPage() {
                 <RefreshCw className="h-4 w-4" />
                 Actualiser
               </button>
-              <button
+              {/* <button
                 type="button"
                 onClick={() => setChatOpen((current) => !current)}
                 className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-lime-400 px-3 text-sm font-black text-white transition hover:bg-lime-300"
               >
                 <MessageCircle className="h-4 w-4" />
-                Chat IA
-              </button>
+                Chat LLM
+              </button> */}
             </div>
           </div>
 
@@ -3198,7 +3193,7 @@ export default function ChatSlotPage() {
                         )}
                         {item.actionType === "team_statistics" && (
                           <p className="mt-2 text-xs leading-5 text-slate-400">
-                            Deux JSON statistiques generes et envoyes au flux IA.
+                            Deux JSON statistiques generes et envoyes au flux LLM.
                           </p>
                         )}
                         {item.actionType === "football_prediction" &&
@@ -3383,42 +3378,26 @@ export default function ChatSlotPage() {
                     ) : (
                       <div className="min-h-[220px] p-4">
                         <div className="flex min-h-[188px] items-center justify-center rounded-lg border border-white/10 bg-black/15 text-sm font-bold text-slate-400">
-                          HTML IA non genere
+                          HTML LLM non genere
                         </div>
                       </div>
                     )}
                   </section>
 
-                  {(statisticsAiSentPrompt || statisticsAiRawResponse) && (
-                    <div className="grid gap-5 2xl:grid-cols-2">
-                      <section className="min-w-0 rounded-xl border border-white/10 bg-[#10213d] shadow-lg shadow-black/15">
-                        <div className="border-b border-white/10 px-4 py-3">
-                          <h4 className="text-sm font-black text-white">
-                            Prompt envoye a l&apos;IA
-                          </h4>
-                          <p className="mt-1 text-xs text-slate-500">
-                            Texte exact transmis avec les deux JSON.
-                          </p>
-                        </div>
-                        <pre className="max-h-[520px] overflow-auto whitespace-pre-wrap break-words p-4 text-xs leading-5 text-slate-200">
-                          {statisticsAiSentPrompt}
-                        </pre>
-                      </section>
-
-                      <section className="min-w-0 rounded-xl border border-white/10 bg-[#10213d] shadow-lg shadow-black/15">
-                        <div className="border-b border-white/10 px-4 py-3">
-                          <h4 className="text-sm font-black text-white">
-                            Reponse brute IA
-                          </h4>
-                          <p className="mt-1 text-xs text-slate-500">
-                            Contenu retourne avant affichage HTML.
-                          </p>
-                        </div>
-                        <pre className="max-h-[520px] overflow-auto whitespace-pre-wrap break-words p-4 text-xs leading-5 text-slate-200">
-                          {statisticsAiRawResponse}
-                        </pre>
-                      </section>
-                    </div>
+                  {statisticsAiRawResponse && (
+                    <section className="min-w-0 rounded-xl border border-white/10 bg-[#10213d] shadow-lg shadow-black/15">
+                      <div className="border-b border-white/10 px-4 py-3">
+                        <h4 className="text-sm font-black text-white">
+                          Reponse LLM
+                        </h4>
+                        <p className="mt-1 text-xs text-slate-500">
+                          Contenu retourne avant affichage HTML.
+                        </p>
+                      </div>
+                      <pre className="max-h-[520px] overflow-auto whitespace-pre-wrap break-words p-4 text-xs leading-5 text-slate-200">
+                        {statisticsAiRawResponse}
+                      </pre>
+                    </section>
                   )}
 
                   <div className="grid gap-5 2xl:grid-cols-2">
@@ -3584,7 +3563,7 @@ export default function ChatSlotPage() {
               <div className="flex items-center gap-2">
                 <Bot className="h-5 w-5 text-lime-300" />
                 <h3 className="font-black text-white">
-                  {chatPanelMode === "prediction" ? "Prediction IA" : "Chat IA"}
+                  {chatPanelMode === "prediction" ? "Prediction LLM" : "Chat LLM"}
                 </h3>
               </div>
               <button
@@ -3599,7 +3578,7 @@ export default function ChatSlotPage() {
             <div className="grid grid-cols-2 gap-2 border-b border-white/10 p-3">
               {[
                 ["chat", "Chat"],
-                ["prediction", "Prediction IA"],
+                ["prediction", "Prediction LLM"],
               ].map(([mode, label]) => (
                 <button
                   key={mode}
@@ -3883,7 +3862,7 @@ export default function ChatSlotPage() {
                     ) : (
                       <Sparkles className="h-4 w-4" />
                     )}
-                    Generer prediction IA complete
+                    Generer prediction LLM complete
                   </button>
                 </form>
 

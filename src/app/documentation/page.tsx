@@ -30,7 +30,7 @@ const relationNotes = [
   "Les pays, competitions, saisons, stades, equipes et joueurs viennent d'API-FOOTBALL : ne les insere pas manuellement.",
   "Utilise les selects API quand ils existent : ligues, equipes, matchs, joueurs, statut de match, type de cote.",
   "Pour un match, choisis la competition, la saison et le match depuis API-FOOTBALL pour remplir les IDs, noms et logos.",
-  "Pour que l'IA reponde bien, privilegie des noms complets, dates correctes, scores, statuts et cotes numeriques.",
+  "Pour que le LLM reponde bien, privilegie des noms complets, dates correctes, scores, statuts et cotes numeriques.",
 ];
 
 function formatValue(value: unknown): string {
@@ -196,7 +196,7 @@ export default function DocumentationPage() {
                                 : field.options
                                   ? "Choisir une valeur dans la liste."
                                   : isRecommended
-                                    ? "Champ recommande pour ameliorer les reponses IA."
+                                    ? "Champ recommande pour ameliorer les reponses LLM."
                                     : "-");
 
                             return (

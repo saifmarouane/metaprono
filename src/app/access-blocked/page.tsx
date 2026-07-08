@@ -13,12 +13,12 @@ export default function AccessBlockedPage() {
             <p className="text-xs font-bold uppercase tracking-[0.22em] text-red-200">
               Acces bloque
             </p>
-            <h1 className="text-2xl font-black">Chat IA indisponible</h1>
+            <h1 className="text-2xl font-black">Chat LLM indisponible</h1>
           </div>
         </div>
 
         <p className="rounded-lg border border-red-300/20 bg-red-300/10 p-4 text-sm leading-6 text-slate-200">
-          Ton compte n'a pas acces au chat IA actuellement. L'admin peut le
+          Ton compte n&apos;a pas acces au chat LLM actuellement. L&apos;admin peut le
           reactiver depuis le dashboard admin si necessaire.
         </p>
 

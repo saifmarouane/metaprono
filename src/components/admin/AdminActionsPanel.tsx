@@ -57,6 +57,14 @@ function getPredictionPayload(action: PublicUserAction): PredictionPayload {
   return action.payload as PredictionPayload;
 }
 
+function formatPredictionSource(source: string): string {
+  if (source === "ai-web-search") {
+    return "llm-web-search";
+  }
+
+  return source;
+}
+
 export function AdminActionsPanel({ actions, error }: AdminActionsPanelProps) {
   return (
     <section className="mb-5 overflow-hidden rounded-xl border border-white/10 bg-[#0d1b33]">
@@ -218,7 +226,7 @@ export function AdminActionsPanel({ actions, error }: AdminActionsPanelProps) {
                       )}
                       {percentages?.source && (
                         <div className="mt-1 text-xs text-slate-500">
-                          {percentages.source}
+                          {formatPredictionSource(percentages.source)}
                         </div>
                       )}
                     </td>

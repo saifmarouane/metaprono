@@ -25,6 +25,13 @@ type OpenAiResponsesPayload = {
 
 const AI_PROMPTS = prompts as AiPrompt[];
 
+function normalizeLlmErrorMessage(message: string): string {
+  return message
+    .replace(/OpenAI/gi, "LLM")
+    .replace(/Gemini/gi, "LLM")
+    .replace(/\bAI\b/g, "LLM");
+}
+
 function stringifyJsonForPrompt(value: unknown): string {
   return JSON.stringify(value, null, 2);
 }
@@ -45,7 +52,7 @@ export function getAiPromptById(promptId: string): AiPrompt {
   const prompt = AI_PROMPTS.find((item) => item.id === promptId);
 
   if (!prompt) {
-    throw new Error(`AI prompt not found: ${promptId}`);
+    throw new Error(`LLM prompt not found: ${promptId}`);
   }
 
   return prompt;
@@ -126,7 +133,7 @@ export async function analyzeTeamStatisticsWithGpt(input: {
 
   const { promptPath, promptText, sentPrompt, teamAJson, teamBJson, messages } =
     await buildTeamStatisticsPromptFromTxt(input);
-  const model = process.env.OPENAI_MODEL || "gpt-4.1-mini";
+  const model = process.env.OPENAI_MODEL || "gpt-5.5";
   const response = await fetch("https://api.openai.com/v1/responses", {
     method: "POST",
     headers: {
@@ -141,7 +148,9 @@ export async function analyzeTeamStatisticsWithGpt(input: {
   const result = (await response.json()) as OpenAiResponsesPayload;
 
   if (!response.ok) {
-    throw new Error(result.error?.message ?? "OpenAI analysis request failed");
+    throw new Error(
+      normalizeLlmErrorMessage(result.error?.message ?? "LLM analysis request failed")
+    );
   }
 
   const outputText =

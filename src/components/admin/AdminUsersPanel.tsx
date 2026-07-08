@@ -74,9 +74,9 @@ export function AdminUsersPanel({ users }: AdminUsersPanelProps) {
             <UserCheck className="h-5 w-5" />
           </div>
           <div>
-            <h2 className="font-black">Utilisateurs chat IA</h2>
+            <h2 className="font-black">Utilisateurs chat LLM</h2>
             <p className="text-xs text-slate-400">
-              Valider, remettre en attente ou bloquer l'acces au chat.
+              Valider, remettre en attente ou bloquer l&apos;acces au chat.
             </p>
           </div>
         </div>
@@ -93,7 +93,7 @@ export function AdminUsersPanel({ users }: AdminUsersPanelProps) {
 
       {users.length === 0 ? (
         <div className="p-5 text-sm text-slate-400">
-          Aucun utilisateur chat n'a encore cree de compte.
+          Aucun utilisateur chat n&apos;a encore cree de compte.
         </div>
       ) : (
         <>

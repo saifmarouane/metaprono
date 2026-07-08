@@ -9,9 +9,9 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "MetaPronostic | Football prediction intelligence",
+  title: "MetaPronostic | Football prediction LLM",
   description:
-    "AI match prediction workspace for football data, odds, standings, injuries, and form analysis.",
+    "LLM match prediction workspace for football data, odds, standings, injuries, and form analysis.",
 };
 
 export default function RootLayout({

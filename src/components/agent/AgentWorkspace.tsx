@@ -1053,7 +1053,7 @@ export function AgentWorkspace({ user }: AgentWorkspaceProps) {
                   "Remplir les pays, competitions, saisons, stades et equipes avant les matchs.",
                   "Utiliser les selects pour eviter les erreurs sur les IDs de pays, ligues, equipes et joueurs.",
                   "Verifier les champs obligatoires avant insertion.",
-                  "Ajouter scores, statuts, cotes et blessures pour ameliorer les reponses IA.",
+                  "Ajouter scores, statuts, cotes et blessures pour ameliorer les reponses LLM.",
                 ].map((item) => (
                   <div
                     key={item}
