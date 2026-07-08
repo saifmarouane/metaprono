@@ -48,8 +48,8 @@ export async function POST(req: NextRequest) {
           promptPath: analysis.promptPath,
           model: analysis.model,
           outputType: "html",
-          outputLength: analysis.outputText.length,
-          outputHtml: analysis.outputText,
+          outputLength: analysis.outputHtml.length,
+          outputHtml: analysis.outputHtml,
         },
       });
     } catch (error) {

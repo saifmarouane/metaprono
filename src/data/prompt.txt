@@ -309,7 +309,7 @@ Le HTML doit contenir :
 
 1. Hero section
 
-   * Titre : “AI Match Prediction”
+   * Titre : “Match Prediction”
    * Noms et logos des deux équipes
    * Badge du favori
    * Date de génération si disponible
@@ -346,7 +346,7 @@ Le HTML doit contenir :
    * 4 à 7 facteurs décisifs
    * Chaque facteur doit avoir un titre court et une explication.
 
-6. Key Players
+6. Key Players fait attention il faut pas oublier cette section 
 
    * Affiche les meilleurs buteurs ou joueurs importants si disponibles.
    * Utilise les photos si disponibles.

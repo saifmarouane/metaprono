@@ -134,6 +134,7 @@ type TeamStatisticsComparisonData = {
 
 type TeamStatisticsAiAnalysis = {
   outputText: string;
+  outputHtml?: string;
   sentPrompt?: string;
   model?: string;
   promptName?: string;
@@ -172,6 +173,39 @@ function getSavedHistoryHtml(item: UserActionHistoryItem): string {
   return item.payload?.outputHtml
     ? normalizeAiHtmlResponse(item.payload.outputHtml)
     : "";
+}
+
+async function requestPredictionNotificationPermission() {
+  if (typeof window === "undefined" || !("Notification" in window)) {
+    return false;
+  }
+
+  if (Notification.permission === "granted") {
+    return true;
+  }
+
+  if (Notification.permission === "denied") {
+    return false;
+  }
+
+  const permission = await Notification.requestPermission();
+  return permission === "granted";
+}
+
+function notifyPredictionFinished(message: string) {
+  if (
+    typeof window === "undefined" ||
+    !("Notification" in window) ||
+    Notification.permission !== "granted"
+  ) {
+    return;
+  }
+
+  new Notification("Prediction terminee", {
+    body: message,
+    icon: "/logo.jpeg",
+    tag: "metapronostic-prediction-complete",
+  });
 }
 
 type JsonTableRow = {
@@ -1987,7 +2021,7 @@ export default function ChatSlotPage() {
     predictionStatus.type === "loading"
       ? "Extraction des statistiques depuis API-FOOTBALL, lecture des donnees CRM, liaison avec le LLM et preparation de la prediction..."
       : statisticsAiStatus.type === "loading"
-        ? "Connexion au LLM, lecture des statistiques et generation de la reponse finale..."
+        ? "Effectuer les calcules pour les statistiques, connexion au LLM, lecture des statistiques et generation de la reponse finale..."
         : aiPredictionStatus.type === "loading"
           ? aiPredictionStatus.message
           : dashboardStatus.type === "loading"
@@ -2037,6 +2071,13 @@ export default function ChatSlotPage() {
     } finally {
       setHistoryLoaded(true);
     }
+  }
+
+  async function reloadPredictionHistoryAfterSave() {
+    await loadPredictionHistory();
+    window.setTimeout(() => {
+      void loadPredictionHistory();
+    }, 900);
   }
 
   async function searchTeams({
@@ -2146,6 +2187,7 @@ export default function ChatSlotPage() {
       return;
     }
 
+    void requestPredictionNotificationPermission();
     setPredictionStatus({
       type: "loading",
       message: "Chargement statistiques globales, effectifs, blessures et matchs...",
@@ -2205,6 +2247,9 @@ export default function ChatSlotPage() {
       setHistoryLoaded(false);
       void loadPredictionHistory();
       await runStatisticsAiAnalysis(result);
+      notifyPredictionFinished(
+        `Voila, la prediction ${result.teams.teamA.name} vs ${result.teams.teamB.name} est terminee.`
+      );
     } catch (error) {
       setPredictionStatus({
         type: "error",
@@ -2249,9 +2294,12 @@ export default function ChatSlotPage() {
         );
       }
 
+      const renderedHtml =
+        result.analysis.outputHtml ??
+        normalizeAiHtmlResponse(result.analysis.outputText);
       setStatisticsAiRawResponse(result.analysis.outputText);
       setStatisticsAiSentPrompt(result.analysis.sentPrompt ?? "");
-      setStatisticsAiHtml(normalizeAiHtmlResponse(result.analysis.outputText));
+      setStatisticsAiHtml(renderedHtml);
       setStatisticsAiStatus({
         type: result.actionSaveError ? "error" : "success",
         message: result.actionSaveError
@@ -2259,7 +2307,7 @@ export default function ChatSlotPage() {
           : "HTML IA genere et sauvegarde dans l'historique.",
       });
       setHistoryLoaded(false);
-      await loadPredictionHistory();
+      await reloadPredictionHistoryAfterSave();
     } catch (error) {
       setStatisticsAiStatus({
         type: "error",
@@ -3315,7 +3363,7 @@ export default function ChatSlotPage() {
                         ) : (
                           <Sparkles className="h-4 w-4" />
                         )}
-                        Relancer IA
+                        Relancer la prediction
                       </button>
                     </div>
 

@@ -160,7 +160,7 @@ export default function LandingPage({ authUser }: LandingPageProps) {
               </span>
             </Link>
             <span className="hidden rounded-full border border-lime-300/20 bg-lime-300/10 px-3 py-1 text-xs font-black uppercase text-lime-200 lg:inline-flex">
-              Football AI
+              Football Prediction 
             </span>
           </div>
 

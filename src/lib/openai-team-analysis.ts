@@ -29,6 +29,18 @@ function stringifyJsonForPrompt(value: unknown): string {
   return JSON.stringify(value, null, 2);
 }
 
+function normalizeHtmlResponse(value: string): string {
+  const trimmed = value.trim();
+  const withoutFence = trimmed
+    .replace(/^```html\s*/i, "")
+    .replace(/^```\s*/i, "")
+    .replace(/\s*```$/i, "")
+    .trim();
+  const documentStart = withoutFence.search(/<!doctype html|<html[\s>]/i);
+
+  return documentStart > 0 ? withoutFence.slice(documentStart).trim() : withoutFence;
+}
+
 export function getAiPromptById(promptId: string): AiPrompt {
   const prompt = AI_PROMPTS.find((item) => item.id === promptId);
 
@@ -141,6 +153,7 @@ export async function analyzeTeamStatisticsWithGpt(input: {
       .join("\n")
       .trim() ??
     "";
+  const outputHtml = normalizeHtmlResponse(outputText);
 
   return {
     promptId: "src_data_prompt_txt",
@@ -152,5 +165,6 @@ export async function analyzeTeamStatisticsWithGpt(input: {
     teamAJson,
     teamBJson,
     outputText,
+    outputHtml,
   };
 }
