@@ -9,6 +9,7 @@ import {
   CheckCircle2,
   ChevronDown,
   Clock3,
+  Download,
   History,
   Loader2,
   RefreshCw,
@@ -166,6 +167,16 @@ function normalizeAiHtmlResponse(value: string): string {
     .replace(/^```\s*/i, "")
     .replace(/\s*```$/i, "")
     .trim();
+}
+
+function slugify(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 60) || "prediction";
 }
 
 function getSavedHistoryHtml(item: UserActionHistoryItem): string {
@@ -1979,6 +1990,10 @@ export default function ChatSlotPage() {
   const [statisticsAiHtml, setStatisticsAiHtml] = useState("");
   const [statisticsAiRawResponse, setStatisticsAiRawResponse] = useState("");
   const [historyHtmlPreview, setHistoryHtmlPreview] = useState("");
+  const [statisticsPngStatus, setStatisticsPngStatus] = useState<{
+    type: "idle" | "loading" | "success" | "error";
+    message: string;
+  }>({ type: "idle", message: "" });
   const [statisticsAiStatus, setStatisticsAiStatus] = useState<{
     type: "idle" | "loading" | "success" | "error";
     message: string;
@@ -2268,6 +2283,7 @@ export default function ChatSlotPage() {
     });
     setStatisticsAiHtml("");
     setStatisticsAiRawResponse("");
+    setStatisticsPngStatus({ type: "idle", message: "" });
 
     try {
       const response = await fetch("/api/football/analyze-statistics", {
@@ -2308,6 +2324,163 @@ export default function ChatSlotPage() {
         type: "error",
         message: error instanceof Error ? error.message : "Erreur inconnue",
       });
+    }
+  }
+
+  async function downloadStatisticsHtmlPng() {
+    if (!statisticsAiHtml) {
+      setStatisticsPngStatus({
+        type: "error",
+        message: "Aucun HTML a telecharger.",
+      });
+      return;
+    }
+
+    setStatisticsPngStatus({
+      type: "loading",
+      message: "Preparation du PNG...",
+    });
+
+    const iframe = document.createElement("iframe");
+    const frameWidth = 1440;
+
+    iframe.style.position = "fixed";
+    iframe.style.left = "-10000px";
+    iframe.style.top = "0";
+    iframe.style.width = `${frameWidth}px`;
+    iframe.style.height = "1px";
+    iframe.style.border = "0";
+    iframe.setAttribute("aria-hidden", "true");
+
+    try {
+      document.body.appendChild(iframe);
+      iframe.srcdoc = statisticsAiHtml;
+
+      await new Promise<void>((resolve, reject) => {
+        const timeout = window.setTimeout(() => {
+          reject(new Error("Temps depasse pendant le rendu HTML."));
+        }, 10000);
+
+        iframe.onload = () => {
+          window.clearTimeout(timeout);
+          resolve();
+        };
+      });
+
+      const frameDocument = iframe.contentDocument;
+
+      if (!frameDocument?.documentElement || !frameDocument.body) {
+        throw new Error("Impossible de lire le HTML genere.");
+      }
+
+      await frameDocument.fonts?.ready.catch(() => undefined);
+      await Promise.all(
+        Array.from(frameDocument.images).map(
+          (image) =>
+            new Promise<void>((resolve) => {
+              if (image.complete) {
+                resolve();
+                return;
+              }
+
+              image.onload = () => resolve();
+              image.onerror = () => resolve();
+            })
+        )
+      );
+
+      const frameHeight = Math.ceil(
+        Math.max(
+          720,
+          frameDocument.documentElement.scrollHeight,
+          frameDocument.body.scrollHeight,
+          frameDocument.documentElement.offsetHeight,
+          frameDocument.body.offsetHeight
+        )
+      );
+      iframe.style.height = `${frameHeight}px`;
+
+      const clonedDocument = frameDocument.documentElement.cloneNode(true) as HTMLElement;
+      clonedDocument.setAttribute("xmlns", "http://www.w3.org/1999/xhtml");
+      clonedDocument.querySelectorAll("script").forEach((script) => script.remove());
+
+      const serializedHtml = new XMLSerializer().serializeToString(clonedDocument);
+      const svg = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="${frameWidth}" height="${frameHeight}">
+          <foreignObject width="100%" height="100%">${serializedHtml}</foreignObject>
+        </svg>
+      `;
+      const svgUrl = URL.createObjectURL(
+        new Blob([svg], { type: "image/svg+xml;charset=utf-8" })
+      );
+
+      await new Promise<void>((resolve, reject) => {
+        const image = new Image();
+        const timeout = window.setTimeout(() => {
+          URL.revokeObjectURL(svgUrl);
+          reject(new Error("Temps depasse pendant la conversion PNG."));
+        }, 10000);
+
+        image.onload = () => {
+          window.clearTimeout(timeout);
+          const canvas = document.createElement("canvas");
+          canvas.width = frameWidth;
+          canvas.height = frameHeight;
+          const context = canvas.getContext("2d");
+
+          if (!context) {
+            URL.revokeObjectURL(svgUrl);
+            reject(new Error("Canvas non disponible."));
+            return;
+          }
+
+          context.fillStyle = "#ffffff";
+          context.fillRect(0, 0, frameWidth, frameHeight);
+          context.drawImage(image, 0, 0);
+          URL.revokeObjectURL(svgUrl);
+
+          canvas.toBlob((blob) => {
+            if (!blob) {
+              reject(new Error("PNG non genere."));
+              return;
+            }
+
+            const pngUrl = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            const teamAName = statisticsReport?.teams.teamA.name ?? "equipe-a";
+            const teamBName = statisticsReport?.teams.teamB.name ?? "equipe-b";
+            const fileName = `prediction-${slugify(teamAName)}-vs-${slugify(teamBName)}.png`;
+
+            link.href = pngUrl;
+            link.download = fileName;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.setTimeout(() => URL.revokeObjectURL(pngUrl), 1000);
+            resolve();
+          }, "image/png");
+        };
+
+        image.onerror = () => {
+          window.clearTimeout(timeout);
+          URL.revokeObjectURL(svgUrl);
+          reject(new Error("Conversion PNG impossible."));
+        };
+
+        image.src = svgUrl;
+      });
+
+      setStatisticsPngStatus({
+        type: "success",
+        message: "PNG telecharge.",
+      });
+    } catch (error) {
+      setStatisticsPngStatus({
+        type: "error",
+        message: error instanceof Error ? error.message : "Erreur PNG inconnue",
+      });
+    } finally {
+      iframe.remove();
     }
   }
 
@@ -3347,19 +3520,53 @@ export default function ChatSlotPage() {
                           </p>
                         </div>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => runStatisticsAiAnalysis()}
-                        disabled={statisticsAiStatus.type === "loading"}
-                        className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-cyan-400 px-4 text-sm font-black text-white transition hover:bg-cyan-300 disabled:cursor-not-allowed disabled:opacity-55"
-                      >
-                        {statisticsAiStatus.type === "loading" ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Sparkles className="h-4 w-4" />
+                      <div className="flex flex-col gap-2 sm:items-end">
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={() => runStatisticsAiAnalysis()}
+                            disabled={statisticsAiStatus.type === "loading"}
+                            className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-cyan-400 px-4 text-sm font-black text-white transition hover:bg-cyan-300 disabled:cursor-not-allowed disabled:opacity-55"
+                          >
+                            {statisticsAiStatus.type === "loading" ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Sparkles className="h-4 w-4" />
+                            )}
+                            Relancer la prediction
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => void downloadStatisticsHtmlPng()}
+                            disabled={
+                              !statisticsAiHtml ||
+                              statisticsPngStatus.type === "loading" ||
+                              statisticsAiStatus.type === "loading"
+                            }
+                            className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-lime-400 px-4 text-sm font-black text-white transition hover:bg-lime-300 disabled:cursor-not-allowed disabled:opacity-55"
+                          >
+                            {statisticsPngStatus.type === "loading" ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Download className="h-4 w-4" />
+                            )}
+                            Telecharger PNG
+                          </button>
+                        </div>
+                        {statisticsPngStatus.message && (
+                          <p
+                            className={`text-xs font-bold ${
+                              statisticsPngStatus.type === "error"
+                                ? "text-red-200"
+                                : statisticsPngStatus.type === "success"
+                                  ? "text-lime-200"
+                                  : "text-slate-400"
+                            }`}
+                          >
+                            {statisticsPngStatus.message}
+                          </p>
                         )}
-                        Relancer la prediction
-                      </button>
+                      </div>
                     </div>
 
                     {statisticsAiStatus.type === "error" && (
