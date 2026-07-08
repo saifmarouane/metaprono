@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { type Dispatch, type SetStateAction, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   AlertTriangle,
@@ -29,6 +29,11 @@ type Message = {
   role: "user" | "assistant";
   content: string;
   isStreaming?: boolean;
+};
+
+type DownloadStatus = {
+  type: "idle" | "loading" | "success" | "error";
+  message: string;
 };
 
 type MatchPreview = {
@@ -161,12 +166,46 @@ function extractTeamStatisticsJsons(
 }
 
 function normalizeAiHtmlResponse(value: string): string {
-  return value
+  const html = value
     .trim()
     .replace(/^```html\s*/i, "")
     .replace(/^```\s*/i, "")
     .replace(/\s*```$/i, "")
     .trim();
+  const scaleStyle = `
+    <style id="metapronostic-display-scale">
+      html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+      body { font-size: 14px !important; line-height: 1.45 !important; overflow-wrap: anywhere; }
+      h1 { font-size: 24px !important; line-height: 1.18 !important; }
+      h2 { font-size: 20px !important; line-height: 1.22 !important; }
+      h3 { font-size: 17px !important; line-height: 1.28 !important; }
+      h4, h5, h6 { font-size: 15px !important; line-height: 1.3 !important; }
+      p, li, td, th, div, span { max-width: 100%; }
+      p, li, td, th, label, input, button { font-size: 13px !important; line-height: 1.45 !important; }
+      table { width: 100% !important; max-width: 100% !important; }
+      img, svg, canvas { max-width: 100% !important; height: auto; }
+      @media (max-width: 640px) {
+        body { font-size: 13px !important; }
+        h1 { font-size: 20px !important; }
+        h2 { font-size: 17px !important; }
+        h3 { font-size: 15px !important; }
+        p, li, td, th, label, input, button { font-size: 12px !important; }
+      }
+    </style>`;
+
+  if (html.includes("metapronostic-display-scale")) {
+    return html;
+  }
+
+  if (/<\/head>/i.test(html)) {
+    return html.replace(/<\/head>/i, `${scaleStyle}</head>`);
+  }
+
+  if (/<body[\s>]/i.test(html)) {
+    return html.replace(/<body([^>]*)>/i, `<body$1>${scaleStyle}`);
+  }
+
+  return `${scaleStyle}${html}`;
 }
 
 function slugify(value: string): string {
@@ -1181,11 +1220,11 @@ function AiAnalysisSection({ prediction }: { prediction: PredictionData }) {
   return (
     <section className="rounded-xl border border-lime-300/20 bg-lime-300/[0.06] p-4 shadow-lg shadow-black/15">
       <div className="mb-4 flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-lime-300/15 text-lime-100">
-          <Bot className="h-5 w-5" />
+        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-lime-300/15 text-lime-100">
+          <Bot className="h-4 w-4" />
         </div>
         <div className="min-w-0">
-          <h3 className="font-black text-white">Prediction LLM dediee</h3>
+          <h3 className="text-sm font-black text-white">Prediction LLM dediee</h3>
           <p className="truncate text-xs text-lime-100/70">
             {prediction.aiAnalysis?.provider
               ? "Pipeline LLM actif"
@@ -1201,10 +1240,10 @@ function AiAnalysisSection({ prediction }: { prediction: PredictionData }) {
               <p className="text-xs font-black uppercase text-lime-100/75">
                 Verdict LLM
               </p>
-              <h4 className="mt-2 text-xl font-black text-white">
+              <h4 className="mt-2 text-lg font-black text-white">
                 {structured.verdict.winner}
               </h4>
-              <p className="mt-2 text-sm leading-6 text-slate-200">
+              <p className="mt-2 text-sm leading-5 text-slate-200">
                 {structured.verdict.summary}
               </p>
               <div className="mt-4 grid grid-cols-2 gap-2">
@@ -1257,13 +1296,13 @@ function AiAnalysisSection({ prediction }: { prediction: PredictionData }) {
                 className="rounded-xl border border-white/10 bg-[#10213d] p-4"
               >
                 <h4 className="font-black text-white">{team.name}</h4>
-                <p className="mt-2 text-sm leading-6 text-slate-300">
+                <p className="mt-2 text-sm leading-5 text-slate-300">
                   {team.formSummary}
                 </p>
                 <p className="mt-3 text-xs font-black uppercase text-cyan-100/75">
                   Identite tactique
                 </p>
-                <p className="mt-1 text-sm leading-6 text-cyan-50/90">
+                <p className="mt-1 text-sm leading-5 text-cyan-50/90">
                   {team.tacticalIdentity}
                 </p>
                 <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -1990,10 +2029,16 @@ export default function ChatSlotPage() {
   const [statisticsAiHtml, setStatisticsAiHtml] = useState("");
   const [statisticsAiRawResponse, setStatisticsAiRawResponse] = useState("");
   const [historyHtmlPreview, setHistoryHtmlPreview] = useState("");
-  const [statisticsPngStatus, setStatisticsPngStatus] = useState<{
-    type: "idle" | "loading" | "success" | "error";
-    message: string;
-  }>({ type: "idle", message: "" });
+  const [historyHtmlPreviewFileName, setHistoryHtmlPreviewFileName] =
+    useState("historique-prediction.pdf");
+  const [statisticsPdfStatus, setStatisticsPdfStatus] = useState<DownloadStatus>({
+    type: "idle",
+    message: "",
+  });
+  const [historyPdfStatus, setHistoryPdfStatus] = useState<DownloadStatus>({
+    type: "idle",
+    message: "",
+  });
   const [statisticsAiStatus, setStatisticsAiStatus] = useState<{
     type: "idle" | "loading" | "success" | "error";
     message: string;
@@ -2009,6 +2054,7 @@ export default function ChatSlotPage() {
   }>({ type: "idle", message: "" });
   const [history, setHistory] = useState<UserActionHistoryItem[]>([]);
   const [historyLoaded, setHistoryLoaded] = useState(false);
+  const [showPredictionHistory, setShowPredictionHistory] = useState(true);
   const [activeSection, setActiveSection] = useState<WorkspaceSection>("predictions");
   const [chatOpen, setChatOpen] = useState(false);
   const [chatPanelMode, setChatPanelMode] = useState<ChatPanelMode>("chat");
@@ -2283,7 +2329,7 @@ export default function ChatSlotPage() {
     });
     setStatisticsAiHtml("");
     setStatisticsAiRawResponse("");
-    setStatisticsPngStatus({ type: "idle", message: "" });
+    setStatisticsPdfStatus({ type: "idle", message: "" });
 
     try {
       const response = await fetch("/api/football/analyze-statistics", {
@@ -2327,22 +2373,26 @@ export default function ChatSlotPage() {
     }
   }
 
-  async function downloadStatisticsHtmlPng() {
-    if (!statisticsAiHtml) {
-      setStatisticsPngStatus({
+  async function downloadHtmlAsPdf(
+    html: string,
+    fileName: string,
+    setStatus: Dispatch<SetStateAction<DownloadStatus>>
+  ) {
+    const iframe = document.createElement("iframe");
+    const frameWidth = 1440;
+
+    if (!html) {
+      setStatus({
         type: "error",
         message: "Aucun HTML a telecharger.",
       });
       return;
     }
 
-    setStatisticsPngStatus({
+    setStatus({
       type: "loading",
-      message: "Preparation du PNG...",
+      message: "Preparation du PDF...",
     });
-
-    const iframe = document.createElement("iframe");
-    const frameWidth = 1440;
 
     iframe.style.position = "fixed";
     iframe.style.left = "-10000px";
@@ -2354,7 +2404,7 @@ export default function ChatSlotPage() {
 
     try {
       document.body.appendChild(iframe);
-      iframe.srcdoc = statisticsAiHtml;
+      iframe.srcdoc = html;
 
       await new Promise<void>((resolve, reject) => {
         const timeout = window.setTimeout(() => {
@@ -2391,7 +2441,7 @@ export default function ChatSlotPage() {
 
       const frameHeight = Math.ceil(
         Math.max(
-          720,
+          900,
           frameDocument.documentElement.scrollHeight,
           frameDocument.body.scrollHeight,
           frameDocument.documentElement.offsetHeight,
@@ -2400,88 +2450,67 @@ export default function ChatSlotPage() {
       );
       iframe.style.height = `${frameHeight}px`;
 
-      const clonedDocument = frameDocument.documentElement.cloneNode(true) as HTMLElement;
-      clonedDocument.setAttribute("xmlns", "http://www.w3.org/1999/xhtml");
-      clonedDocument.querySelectorAll("script").forEach((script) => script.remove());
-
-      const serializedHtml = new XMLSerializer().serializeToString(clonedDocument);
-      const svg = `
-        <svg xmlns="http://www.w3.org/2000/svg" width="${frameWidth}" height="${frameHeight}">
-          <foreignObject width="100%" height="100%">${serializedHtml}</foreignObject>
-        </svg>
-      `;
-      const svgUrl = URL.createObjectURL(
-        new Blob([svg], { type: "image/svg+xml;charset=utf-8" })
-      );
-
-      await new Promise<void>((resolve, reject) => {
-        const image = new Image();
-        const timeout = window.setTimeout(() => {
-          URL.revokeObjectURL(svgUrl);
-          reject(new Error("Temps depasse pendant la conversion PNG."));
-        }, 10000);
-
-        image.onload = () => {
-          window.clearTimeout(timeout);
-          const canvas = document.createElement("canvas");
-          canvas.width = frameWidth;
-          canvas.height = frameHeight;
-          const context = canvas.getContext("2d");
-
-          if (!context) {
-            URL.revokeObjectURL(svgUrl);
-            reject(new Error("Canvas non disponible."));
-            return;
-          }
-
-          context.fillStyle = "#ffffff";
-          context.fillRect(0, 0, frameWidth, frameHeight);
-          context.drawImage(image, 0, 0);
-          URL.revokeObjectURL(svgUrl);
-
-          canvas.toBlob((blob) => {
-            if (!blob) {
-              reject(new Error("PNG non genere."));
-              return;
-            }
-
-            const pngUrl = URL.createObjectURL(blob);
-            const link = document.createElement("a");
-            const teamAName = statisticsReport?.teams.teamA.name ?? "equipe-a";
-            const teamBName = statisticsReport?.teams.teamB.name ?? "equipe-b";
-            const fileName = `prediction-${slugify(teamAName)}-vs-${slugify(teamBName)}.png`;
-
-            link.href = pngUrl;
-            link.download = fileName;
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
-            window.setTimeout(() => URL.revokeObjectURL(pngUrl), 1000);
-            resolve();
-          }, "image/png");
-        };
-
-        image.onerror = () => {
-          window.clearTimeout(timeout);
-          URL.revokeObjectURL(svgUrl);
-          reject(new Error("Conversion PNG impossible."));
-        };
-
-        image.src = svgUrl;
+      const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
+        import("html2canvas"),
+        import("jspdf"),
+      ]);
+      const canvas = await html2canvas(frameDocument.body, {
+        backgroundColor: "#ffffff",
+        height: frameHeight,
+        imageTimeout: 5000,
+        logging: false,
+        scale: 2,
+        useCORS: true,
+        width: frameWidth,
+        windowHeight: frameHeight,
+        windowWidth: frameWidth,
       });
+      const imageData = canvas.toDataURL("image/png", 1);
+      const pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "pt",
+        format: "a4",
+      });
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const imageHeight = (canvas.height * pageWidth) / canvas.width;
+      let remainingHeight = imageHeight;
+      let position = 0;
 
-      setStatisticsPngStatus({
+      pdf.addImage(imageData, "PNG", 0, position, pageWidth, imageHeight);
+      remainingHeight -= pageHeight;
+
+      while (remainingHeight > 0) {
+        position -= pageHeight;
+        pdf.addPage();
+        pdf.addImage(imageData, "PNG", 0, position, pageWidth, imageHeight);
+        remainingHeight -= pageHeight;
+      }
+
+      pdf.save(fileName);
+      setStatus({
         type: "success",
-        message: "PNG telecharge.",
+        message: "PDF telecharge.",
       });
     } catch (error) {
-      setStatisticsPngStatus({
+      setStatus({
         type: "error",
-        message: error instanceof Error ? error.message : "Erreur PNG inconnue",
+        message: error instanceof Error ? error.message : "Erreur PDF inconnue",
       });
     } finally {
       iframe.remove();
     }
+  }
+
+  async function downloadStatisticsHtmlPdf() {
+    const teamAName = statisticsReport?.teams.teamA.name ?? "equipe-a";
+    const teamBName = statisticsReport?.teams.teamB.name ?? "equipe-b";
+
+    await downloadHtmlAsPdf(
+      statisticsAiHtml,
+      `prediction-${slugify(teamAName)}-vs-${slugify(teamBName)}.pdf`,
+      setStatisticsPdfStatus
+    );
   }
 
   async function runAiPrediction(event: React.FormEvent) {
@@ -2833,13 +2862,50 @@ export default function ChatSlotPage() {
               <h3 className="text-sm font-black text-white">
                 Historique
               </h3>
-              <button
-                type="button"
-                onClick={() => setHistoryHtmlPreview("")}
-                className="inline-flex h-9 items-center justify-center rounded-lg border border-white/10 bg-white/[0.04] px-3 text-sm font-black text-white hover:bg-white/10"
-              >
-                Fermer
-              </button>
+              <div className="flex items-center gap-2">
+                {historyPdfStatus.message && (
+                  <span
+                    className={`hidden text-xs font-bold sm:inline ${
+                      historyPdfStatus.type === "error"
+                        ? "text-red-200"
+                        : historyPdfStatus.type === "success"
+                          ? "text-lime-200"
+                          : "text-slate-400"
+                    }`}
+                  >
+                    {historyPdfStatus.message}
+                  </span>
+                )}
+                <button
+                  type="button"
+                  onClick={() =>
+                    void downloadHtmlAsPdf(
+                      historyHtmlPreview,
+                      historyHtmlPreviewFileName,
+                      setHistoryPdfStatus
+                    )
+                  }
+                  disabled={historyPdfStatus.type === "loading"}
+                  className="inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-lime-400 px-3 text-sm font-black text-white hover:bg-lime-300 disabled:cursor-not-allowed disabled:opacity-55"
+                >
+                  {historyPdfStatus.type === "loading" ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Download className="h-4 w-4" />
+                  )}
+                  PDF
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setHistoryHtmlPreview("");
+                    setHistoryPdfStatus({ type: "idle", message: "" });
+                  }}
+                  className="inline-flex h-9 items-center justify-center rounded-lg border border-white/10 bg-white/[0.04] px-3 text-sm font-black text-white hover:bg-white/10"
+                >
+                  Fermer
+                </button>
+              </div>
             </div>
             <iframe
               title="Historique HTML"
@@ -2852,20 +2918,20 @@ export default function ChatSlotPage() {
       )}
       <div className="mx-auto max-w-7xl space-y-5">
         <section className="overflow-hidden rounded-xl border border-white/10 bg-[#10213d] shadow-2xl shadow-black/20">
-          <div className="grid gap-5 p-4 sm:p-5 lg:grid-cols-[1fr_auto] lg:items-center">
+          <div className="grid gap-4 p-3 sm:p-4 lg:grid-cols-[1fr_auto] lg:items-center">
             <div className="flex items-start gap-3 sm:items-center">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-cyan-300/10 text-cyan-200 ring-1 ring-cyan-300/15">
-                <Trophy className="h-6 w-6" />
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-cyan-300/10 text-cyan-200 ring-1 ring-cyan-300/15">
+                <Trophy className="h-5 w-5" />
               </div>
               <div className="min-w-0">
                 <div className="mb-2 inline-flex items-center gap-2 rounded-md border border-lime-300/20 bg-lime-300/10 px-2 py-1 text-xs font-black uppercase text-lime-100">
                   <Sparkles className="h-3.5 w-3.5" />
                   Match control center
                 </div>
-                <h2 className="text-xl font-black text-white sm:text-2xl">
+                <h2 className="text-lg font-black text-white sm:text-xl">
                   Tableau live football
                 </h2>
-                <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-300">
+                <p className="mt-1 max-w-2xl text-xs leading-5 text-slate-300 sm:text-sm">
                   Suis les matchs en cours, les rencontres terminees et les
                   prochains coups d&apos;envoi depuis API-FOOTBALL.
                 </p>
@@ -2921,14 +2987,14 @@ export default function ChatSlotPage() {
             ].map((stat) => {
               const StatIcon = stat.icon;
               return (
-                <div key={stat.label} className="bg-[#0d1b33] px-4 py-3">
+                <div key={stat.label} className="bg-[#0d1b33] px-3 py-2.5 sm:px-4">
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-xs font-black uppercase text-slate-500">
                       {stat.label}
                     </p>
                     <StatIcon className={`h-4 w-4 ${stat.color}`} />
                   </div>
-                  <p className={`mt-2 text-2xl font-black ${stat.color}`}>
+                  <p className={`mt-1.5 text-xl font-black ${stat.color}`}>
                     {stat.value}
                   </p>
                 </div>
@@ -2996,20 +3062,20 @@ export default function ChatSlotPage() {
 
         {activeSection === "predictions" && (
         <section className="overflow-hidden rounded-xl border border-white/10 bg-[#09182d] shadow-xl shadow-black/20">
-          <div className="border-b border-white/10 bg-white/[0.03] p-4 sm:p-5">
+          <div className="border-b border-white/10 bg-white/[0.03] p-3 sm:p-4">
             <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-end">
               <div className="flex items-start gap-3">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-lime-300/10 text-lime-200 ring-1 ring-lime-300/15">
-                  <Swords className="h-6 w-6" />
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-lime-300/10 text-lime-200 ring-1 ring-lime-300/15">
+                  <Swords className="h-5 w-5" />
                 </div>
                 <div className="min-w-0">
                   <p className="text-xs font-black uppercase text-lime-100/80">
                     Data center
                   </p>
-                  <h3 className="mt-1 text-xl font-black text-white sm:text-2xl">
+                  <h3 className="mt-1 text-lg font-black text-white sm:text-xl">
                     Statistiques globales des equipes
                   </h3>
-                  <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-400">
+                  <p className="mt-2 max-w-3xl text-xs leading-5 text-slate-400 sm:text-sm">
                     Filtre par pays, ville, ligue et equipe. Le resultat affiche deux JSON avec les donnees statistiques disponibles pour chaque equipe.
                   </p>
                 </div>
@@ -3032,9 +3098,9 @@ export default function ChatSlotPage() {
               </div>
             </div>
           </div>
-          <div className="grid gap-5 p-4 sm:p-5 xl:grid-cols-[minmax(340px,430px)_1fr]">
+          <div className="grid gap-4 p-3 sm:p-4 xl:grid-cols-[minmax(300px,390px)_1fr]">
             <div className="space-y-4">
-            <div className="rounded-xl border border-white/10 bg-[#10213d] p-4 shadow-lg shadow-black/15">
+            <div className="rounded-xl border border-white/10 bg-[#10213d] p-3 shadow-lg shadow-black/15 sm:p-4">
               <div className="mb-4 flex items-center justify-between gap-3">
                 <div>
                   <h4 className="text-sm font-black text-white">
@@ -3261,7 +3327,7 @@ export default function ChatSlotPage() {
                     !resolvedTeamA ||
                     !resolvedTeamB
                   }
-                  className="inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-lime-400 px-4 text-sm font-black text-white transition hover:bg-lime-300 disabled:cursor-not-allowed disabled:opacity-55"
+                  className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-lime-400 px-4 text-sm font-black text-white transition hover:bg-lime-300 disabled:cursor-not-allowed disabled:opacity-55"
                 >
                   {predictionStatus.type === "loading" ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -3285,16 +3351,31 @@ export default function ChatSlotPage() {
               )}
             </div>
 
-              <div className="rounded-xl border border-white/10 bg-[#10213d] p-4 shadow-lg shadow-black/15">
-                <div className="mb-3 flex items-center gap-2">
-                  <History className="h-4 w-4 text-amber-300" />
-                  <h4 className="text-sm font-black text-white">
-                    Historique activite
-                  </h4>
+              <div className="rounded-xl border border-white/10 bg-[#10213d] p-3 shadow-lg shadow-black/15 sm:p-4">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <History className="h-4 w-4 text-amber-300" />
+                    <h4 className="text-sm font-black text-white">
+                      Historique activite
+                    </h4>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowPredictionHistory((current) => !current)}
+                    className="inline-flex h-8 items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/[0.04] px-3 text-xs font-black text-slate-200 transition hover:bg-white/10"
+                  >
+                    {showPredictionHistory ? (
+                      <ChevronDown className="h-4 w-4 rotate-180" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4" />
+                    )}
+                    {showPredictionHistory ? "Masquer" : "Afficher"}
+                  </button>
                 </div>
+                {showPredictionHistory ? (
                 <div className="grid gap-2">
                   {history.length === 0 && (
-                    <p className="rounded-lg border border-white/10 bg-black/15 p-3 text-sm text-slate-400">
+                    <p className="rounded-lg border border-white/10 bg-black/15 p-3 text-xs leading-5 text-slate-400 sm:text-sm">
                       Aucune activite enregistree pour cet utilisateur.
                     </p>
                   )}
@@ -3308,7 +3389,7 @@ export default function ChatSlotPage() {
                     return (
                       <div
                         key={item.id}
-                        className="rounded-lg border border-white/10 bg-black/15 p-3"
+                        className="rounded-lg border border-white/10 bg-black/15 p-2.5 sm:p-3"
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex min-w-0 items-center gap-2">
@@ -3353,7 +3434,15 @@ export default function ChatSlotPage() {
                           savedHistoryHtml ? (
                             <button
                               type="button"
-                              onClick={() => setHistoryHtmlPreview(savedHistoryHtml)}
+                              onClick={() => {
+                                setHistoryPdfStatus({ type: "idle", message: "" });
+                                setHistoryHtmlPreviewFileName(
+                                  `historique-${slugify(item.label)}-${slugify(
+                                    formatDate(item.createdAt)
+                                  )}.pdf`
+                                );
+                                setHistoryHtmlPreview(savedHistoryHtml);
+                              }}
                               className="mt-3 inline-flex w-full items-center justify-center rounded-lg border border-cyan-300/20 bg-cyan-300/10 px-3 py-2 text-xs font-black text-cyan-100 transition hover:bg-cyan-300/20"
                             >
                               Cliquer ici pour voir l&apos;historique
@@ -3379,6 +3468,11 @@ export default function ChatSlotPage() {
                     );
                   })}
                 </div>
+                ) : (
+                  <p className="rounded-lg border border-white/10 bg-black/15 p-3 text-sm text-slate-400">
+                    Historique masque.
+                  </p>
+                )}
               </div>
             </div>
 
@@ -3396,85 +3490,21 @@ export default function ChatSlotPage() {
                 />
               )}
 
-              {!statisticsReport && (
-                <div className="min-h-[520px] rounded-xl border border-white/10 bg-[#10213d] p-4 shadow-lg shadow-black/15 sm:p-6">
-                  <div className="grid h-full gap-5 lg:grid-cols-[1fr_260px] lg:items-center">
-                    <div>
-                      <div className="mb-5 inline-flex h-12 w-12 items-center justify-center rounded-lg bg-cyan-300/10 text-cyan-200 ring-1 ring-cyan-300/15">
-                        <Sparkles className="h-6 w-6" />
-                      </div>
-                      <h3 className="max-w-2xl text-2xl font-black text-white">
-                        Choisis deux equipes pour charger leurs donnees
-                      </h3>
-                      <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-400">
-                        Le resultat affichera deux JSON separes avec les matchs recents et a venir, statistiques par competition, classement, effectif, blessures et evenements recents.
-                      </p>
-                      <div className="mt-6 grid gap-3 sm:grid-cols-2">
-                        {[
-                          ["1", "Filtrer", "Pays, ville, ligue ou nom d'equipe"],
-                          ["2", "Selectionner", "Choisir uniquement une equipe API"],
-                          ["3", "Charger", "Appeler les APIs de statistiques"],
-                          ["4", "Analyser", "Lire les deux JSON equipes"],
-                        ].map(([step, title, text]) => (
-                          <div
-                            key={step}
-                            className="rounded-lg border border-white/10 bg-black/15 p-3"
-                          >
-                            <div className="mb-2 flex items-center gap-2">
-                              <span className="flex h-6 w-6 items-center justify-center rounded-md bg-lime-300/10 text-xs font-black text-lime-100">
-                                {step}
-                              </span>
-                              <p className="text-sm font-black text-white">{title}</p>
-                            </div>
-                            <p className="text-xs leading-5 text-slate-500">{text}</p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="rounded-xl border border-white/10 bg-black/15 p-4">
-                      <p className="text-xs font-black uppercase text-slate-500">
-                        Match preview
-                      </p>
-                      <div className="mt-4 grid gap-3">
-                        <SelectedTeamPanel
-                          label="Equipe A"
-                          team={resolvedTeamA}
-                          country={teamACountryFilter}
-                          league={teamALeagueFilter}
-                          city={teamACityFilter}
-                        />
-                        <div className="flex justify-center text-xs font-black uppercase text-slate-500">
-                          vs
-                        </div>
-                        <SelectedTeamPanel
-                          label="Equipe B"
-                          team={resolvedTeamB}
-                          country={teamBCountryFilter}
-                          league={teamBLeagueFilter}
-                          city={teamBCityFilter}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
               {statisticsReport && (
                 <div className="grid gap-5">
-                  <div className="rounded-xl border border-white/10 bg-[#10213d] p-4 shadow-lg shadow-black/15 sm:p-5">
+                  <div className="rounded-xl border border-white/10 bg-[#10213d] p-3 shadow-lg shadow-black/15 sm:p-4">
                     <p className="text-xs font-black uppercase text-lime-100/80">
                       Donnees statistiques
                     </p>
                     <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center">
-                      <div className="flex min-w-0 flex-1 items-center gap-3 rounded-lg border border-white/10 bg-black/15 p-3">
+                      <div className="flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-white/10 bg-black/15 p-2.5 sm:gap-3 sm:p-3">
                         <TeamMark
                           src={statisticsReport.teams.teamA.logo}
                           name={statisticsReport.teams.teamA.name}
-                          className="h-12 w-12 rounded-lg"
+                          className="h-10 w-10 rounded-lg sm:h-11 sm:w-11"
                         />
                         <div className="min-w-0">
-                          <p className="truncate text-base font-black text-white">
+                          <p className="truncate text-sm font-black text-white">
                             {statisticsReport.teams.teamA.name}
                           </p>
                           <p className="text-xs text-slate-500">JSON equipe A</p>
@@ -3483,14 +3513,14 @@ export default function ChatSlotPage() {
                       <span className="self-center rounded-md border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-black uppercase text-slate-400">
                         vs
                       </span>
-                      <div className="flex min-w-0 flex-1 items-center gap-3 rounded-lg border border-white/10 bg-black/15 p-3">
+                      <div className="flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-white/10 bg-black/15 p-2.5 sm:gap-3 sm:p-3">
                         <TeamMark
                           src={statisticsReport.teams.teamB.logo}
                           name={statisticsReport.teams.teamB.name}
-                          className="h-12 w-12 rounded-lg"
+                          className="h-10 w-10 rounded-lg sm:h-11 sm:w-11"
                         />
                         <div className="min-w-0">
-                          <p className="truncate text-base font-black text-white">
+                          <p className="truncate text-sm font-black text-white">
                             {statisticsReport.teams.teamB.name}
                           </p>
                           <p className="text-xs text-slate-500">JSON equipe B</p>
@@ -3505,7 +3535,7 @@ export default function ChatSlotPage() {
                   </div>
 
                   <section className="overflow-hidden rounded-xl border border-white/10 bg-[#10213d] shadow-lg shadow-black/15">
-                    <div className="flex flex-col gap-3 border-b border-white/10 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex flex-col gap-3 border-b border-white/10 px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-4">
                       <div className="flex items-center gap-3">
                         <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-cyan-300/10 text-cyan-200">
                           <Bot className="h-4 w-4" />
@@ -3526,7 +3556,7 @@ export default function ChatSlotPage() {
                             type="button"
                             onClick={() => runStatisticsAiAnalysis()}
                             disabled={statisticsAiStatus.type === "loading"}
-                            className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-cyan-400 px-4 text-sm font-black text-white transition hover:bg-cyan-300 disabled:cursor-not-allowed disabled:opacity-55"
+                            className="inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-cyan-400 px-3 text-xs font-black text-white transition hover:bg-cyan-300 disabled:cursor-not-allowed disabled:opacity-55 sm:h-10 sm:px-4 sm:text-sm"
                           >
                             {statisticsAiStatus.type === "loading" ? (
                               <Loader2 className="h-4 w-4 animate-spin" />
@@ -3537,33 +3567,33 @@ export default function ChatSlotPage() {
                           </button>
                           <button
                             type="button"
-                            onClick={() => void downloadStatisticsHtmlPng()}
+                            onClick={() => void downloadStatisticsHtmlPdf()}
                             disabled={
                               !statisticsAiHtml ||
-                              statisticsPngStatus.type === "loading" ||
+                              statisticsPdfStatus.type === "loading" ||
                               statisticsAiStatus.type === "loading"
                             }
-                            className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-lime-400 px-4 text-sm font-black text-white transition hover:bg-lime-300 disabled:cursor-not-allowed disabled:opacity-55"
+                            className="inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-lime-400 px-3 text-xs font-black text-white transition hover:bg-lime-300 disabled:cursor-not-allowed disabled:opacity-55 sm:h-10 sm:px-4 sm:text-sm"
                           >
-                            {statisticsPngStatus.type === "loading" ? (
+                            {statisticsPdfStatus.type === "loading" ? (
                               <Loader2 className="h-4 w-4 animate-spin" />
                             ) : (
                               <Download className="h-4 w-4" />
                             )}
-                            Telecharger PNG
+                            Telecharger PDF
                           </button>
                         </div>
-                        {statisticsPngStatus.message && (
+                        {statisticsPdfStatus.message && (
                           <p
                             className={`text-xs font-bold ${
-                              statisticsPngStatus.type === "error"
+                              statisticsPdfStatus.type === "error"
                                 ? "text-red-200"
-                                : statisticsPngStatus.type === "success"
+                                : statisticsPdfStatus.type === "success"
                                   ? "text-lime-200"
                                   : "text-slate-400"
                             }`}
                           >
-                            {statisticsPngStatus.message}
+                            {statisticsPdfStatus.message}
                           </p>
                         )}
                       </div>
@@ -3580,7 +3610,7 @@ export default function ChatSlotPage() {
                         title="Analyse HTML"
                         srcDoc={statisticsAiHtml}
                         sandbox=""
-                        className="h-[720px] w-full border-0 bg-white"
+                        className="h-[62dvh] min-h-[360px] w-full border-0 bg-white sm:h-[680px]"
                       />
                     ) : (
                       <div className="min-h-[220px] p-4">
