@@ -314,7 +314,7 @@ export default function ExplorerSlotPage() {
               <div className="flex items-center gap-2">
                 <ShieldAlert className="h-4 w-4 text-lime-300" />
                 <p className="text-sm text-lime-100">
-                  Analyse IA en cours sur les donnees match...
+                  Analyse en cours sur les donnees match...
                 </p>
               </div>
             </div>

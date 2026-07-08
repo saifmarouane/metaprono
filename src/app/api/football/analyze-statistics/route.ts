@@ -41,13 +41,15 @@ export async function POST(req: NextRequest) {
       actionId = await recordUserAction({
         user: sessionUser,
         actionType: "team_statistics_ai_analysis",
-        label: "Analyse IA HTML statistiques equipes",
+        label: "Prediction",
         payload: {
           promptId: analysis.promptId,
           promptName: analysis.promptName,
           promptPath: analysis.promptPath,
           model: analysis.model,
-          outputPreview: analysis.outputText.slice(0, 1200),
+          outputType: "html",
+          outputLength: analysis.outputText.length,
+          outputHtml: analysis.outputText,
         },
       });
     } catch (error) {

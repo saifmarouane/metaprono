@@ -139,6 +139,13 @@ type TeamStatisticsAiAnalysis = {
   promptName?: string;
 };
 
+type TeamStatisticsAiAnalysisResponse = {
+  ok: true;
+  analysis: TeamStatisticsAiAnalysis;
+  actionId?: string | null;
+  actionSaveError?: string | null;
+};
+
 function extractTeamStatisticsJsons(
   teamAJsonInput: unknown,
   teamBJsonInput: unknown
@@ -159,6 +166,12 @@ function normalizeAiHtmlResponse(value: string): string {
     .replace(/^```\s*/i, "")
     .replace(/\s*```$/i, "")
     .trim();
+}
+
+function getSavedHistoryHtml(item: UserActionHistoryItem): string {
+  return item.payload?.outputHtml
+    ? normalizeAiHtmlResponse(item.payload.outputHtml)
+    : "";
 }
 
 type JsonTableRow = {
@@ -455,6 +468,9 @@ type UserActionHistoryItem = {
     };
     model?: string;
     promptName?: string;
+    outputType?: string;
+    outputLength?: number;
+    outputHtml?: string;
     outputPreview?: string;
   };
 };
@@ -465,7 +481,7 @@ function getHistoryActionLabel(actionType: UserActionHistoryItem["actionType"]) 
   }
 
   if (actionType === "team_statistics_ai_analysis") {
-    return "Analyse IA";
+    return "Prediction";
   }
 
   return "Prediction";
@@ -1930,6 +1946,7 @@ export default function ChatSlotPage() {
   const [statisticsAiHtml, setStatisticsAiHtml] = useState("");
   const [statisticsAiRawResponse, setStatisticsAiRawResponse] = useState("");
   const [statisticsAiSentPrompt, setStatisticsAiSentPrompt] = useState("");
+  const [historyHtmlPreview, setHistoryHtmlPreview] = useState("");
   const [statisticsAiStatus, setStatisticsAiStatus] = useState<{
     type: "idle" | "loading" | "success" | "error";
     message: string;
@@ -2221,7 +2238,7 @@ export default function ChatSlotPage() {
         }),
       });
       const result = (await response.json()) as
-        | { ok: true; analysis: TeamStatisticsAiAnalysis }
+        | TeamStatisticsAiAnalysisResponse
         | { ok?: false; error?: string };
 
       if (!response.ok || result.ok !== true) {
@@ -2236,8 +2253,10 @@ export default function ChatSlotPage() {
       setStatisticsAiSentPrompt(result.analysis.sentPrompt ?? "");
       setStatisticsAiHtml(normalizeAiHtmlResponse(result.analysis.outputText));
       setStatisticsAiStatus({
-        type: "success",
-        message: `HTML IA genere${result.analysis.model ? ` avec ${result.analysis.model}` : ""}.`,
+        type: result.actionSaveError ? "error" : "success",
+        message: result.actionSaveError
+          ? `HTML IA genere, mais non sauvegarde dans l'historique: ${result.actionSaveError}`
+          : "HTML IA genere et sauvegarde dans l'historique.",
       });
       setHistoryLoaded(false);
       await loadPredictionHistory();
@@ -2588,6 +2607,30 @@ export default function ChatSlotPage() {
             <p className="mt-3 text-xs font-bold uppercase text-slate-500">
               Extraction data · LLM · Generation
             </p>
+          </div>
+        </div>
+      )}
+      {historyHtmlPreview && (
+        <div className="fixed inset-0 z-[110] bg-[#06101f]/90 p-3 backdrop-blur-sm sm:p-5">
+          <div className="flex h-full flex-col overflow-hidden rounded-xl border border-white/10 bg-[#10213d] shadow-2xl shadow-black/50">
+            <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
+              <h3 className="text-sm font-black text-white">
+                Historique
+              </h3>
+              <button
+                type="button"
+                onClick={() => setHistoryHtmlPreview("")}
+                className="inline-flex h-9 items-center justify-center rounded-lg border border-white/10 bg-white/[0.04] px-3 text-sm font-black text-white hover:bg-white/10"
+              >
+                Fermer
+              </button>
+            </div>
+            <iframe
+              title="Historique HTML"
+              srcDoc={historyHtmlPreview}
+              sandbox=""
+              className="min-h-0 flex-1 border-0 bg-white"
+            />
           </div>
         </div>
       )}
@@ -3044,6 +3087,7 @@ export default function ChatSlotPage() {
                     const resultTeams =
                       item.payload?.result?.teams ?? item.payload?.teams;
                     const actionLabel = getHistoryActionLabel(item.actionType);
+                    const savedHistoryHtml = getSavedHistoryHtml(item);
 
                     return (
                       <div
@@ -3082,11 +3126,6 @@ export default function ChatSlotPage() {
                           <span className="rounded-md border border-amber-300/15 bg-amber-300/10 px-2 py-1 text-[11px] font-black uppercase text-amber-100">
                             {actionLabel}
                           </span>
-                          {item.payload?.model && (
-                            <span className="rounded-md border border-cyan-300/15 bg-cyan-300/10 px-2 py-1 text-[11px] font-black text-cyan-100">
-                              {item.payload.model}
-                            </span>
-                          )}
                         </div>
                         {percentages && (
                           <p className="mt-2 text-xs font-bold text-slate-300">
@@ -3094,10 +3133,31 @@ export default function ChatSlotPage() {
                             {percentages.teamBWin}%
                           </p>
                         )}
-                        {item.payload?.outputPreview && (
-                          <p className="mt-2 line-clamp-2 text-xs leading-5 text-slate-400">
-                            {item.payload.outputPreview}
+                        {item.actionType === "team_statistics_ai_analysis" && (
+                          savedHistoryHtml ? (
+                            <button
+                              type="button"
+                              onClick={() => setHistoryHtmlPreview(savedHistoryHtml)}
+                              className="mt-3 inline-flex w-full items-center justify-center rounded-lg border border-cyan-300/20 bg-cyan-300/10 px-3 py-2 text-xs font-black text-cyan-100 transition hover:bg-cyan-300/20"
+                            >
+                              Cliquer ici pour voir l&apos;historique
+                            </button>
+                          ) : (
+                            <p className="mt-2 text-xs leading-5 text-slate-500">
+                              Historique HTML indisponible pour cette ancienne entree.
+                            </p>
+                          )
+                        )}
+                        {item.actionType === "team_statistics" && (
+                          <p className="mt-2 text-xs leading-5 text-slate-400">
+                            Deux JSON statistiques generes et envoyes au flux IA.
                           </p>
+                        )}
+                        {item.actionType === "football_prediction" &&
+                          item.payload?.outputPreview && (
+                            <p className="mt-2 line-clamp-2 text-xs leading-5 text-slate-400">
+                              {item.payload.outputPreview}
+                            </p>
                         )}
                       </div>
                     );
@@ -3236,7 +3296,7 @@ export default function ChatSlotPage() {
                         </div>
                         <div>
                           <h4 className="text-sm font-black text-white">
-                            Analyse IA HTML
+                            Analyse  HTML
                           </h4>
                           <p className="text-xs text-slate-500">
                             {statisticsAiStatus.message ||
@@ -3267,7 +3327,7 @@ export default function ChatSlotPage() {
 
                     {statisticsAiHtml ? (
                       <iframe
-                        title="Analyse IA HTML"
+                        title="Analyse HTML"
                         srcDoc={statisticsAiHtml}
                         sandbox=""
                         className="h-[720px] w-full border-0 bg-white"
