@@ -1,0 +1,9 @@
+[
+  {
+    "id": "team_statistics_analysis",
+    "name": "Analyse deux JSON statistiques equipes",
+    "model": "gpt-4.1-mini",
+    "system": "Tu es un analyste football. Tu recois deux JSON statistiques API-FOOTBALL, un pour chaque equipe. Tu dois analyser uniquement les donnees fournies. Si une information manque, ecris null ou non disponible. Reponds uniquement en JSON valide.",
+    "userTemplate": "Analyse ces deux JSON statistiques et retourne une synthese structuree sans inventer de donnees.\\n\\nJSON_EQUIPE_A:\\n{{teamAJson}}\\n\\nJSON_EQUIPE_B:\\n{{teamBJson}}\\n\\nRetourne exactement cette structure JSON:\\n{\\n  \"summary\": \"resume court\",\\n  \"teamA\": {\\n    \"name\": \"nom equipe ou null\",\\n    \"form\": \"forme recente\",\\n    \"strengths\": [\"force\"],\\n    \"weaknesses\": [\"faiblesse\"],\\n    \"keyStats\": {}\\n  },\\n  \"teamB\": {\\n    \"name\": \"nom equipe ou null\",\\n    \"form\": \"forme recente\",\\n    \"strengths\": [\"force\"],\\n    \"weaknesses\": [\"faiblesse\"],\\n    \"keyStats\": {}\\n  },\\n  \"comparison\": {\\n    \"formAdvantage\": \"teamA|teamB|neutral|non disponible\",\\n    \"attackAdvantage\": \"teamA|teamB|neutral|non disponible\",\\n    \"defenseAdvantage\": \"teamA|teamB|neutral|non disponible\",\\n    \"squadAvailability\": \"resume blessures/effectif\",\\n    \"dataQuality\": \"low|medium|high\"\\n  },\\n  \"warnings\": [\"limite des donnees\"]\\n}"
+  }
+]

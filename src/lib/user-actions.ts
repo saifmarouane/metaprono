@@ -3,7 +3,10 @@ import type { AuthUser } from "@/lib/admin-auth";
 
 export const USER_ACTIONS_COLLECTION = "user_actions";
 
-export type UserActionType = "football_prediction";
+export type UserActionType =
+  | "football_prediction"
+  | "team_statistics"
+  | "team_statistics_ai_analysis";
 
 export type UserAction = {
   userId: string;

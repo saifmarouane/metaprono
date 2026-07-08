@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthenticatedUser } from "@/lib/admin-auth";
 import { getCurrentChatAccess } from "@/lib/chat-users";
-import { listUserActions } from "@/lib/user-actions";
+import { listUserActions, type UserActionType } from "@/lib/user-actions";
+
+const ALLOWED_ACTION_TYPES: UserActionType[] = [
+  "football_prediction",
+  "team_statistics",
+  "team_statistics_ai_analysis",
+];
 
 function parseLimit(value: string | null): number {
   if (!value) {
@@ -28,8 +34,9 @@ export async function GET(req: NextRequest) {
     const actions = await listUserActions({
       user,
       limit: parseLimit(req.nextUrl.searchParams.get("limit")),
-      actionType:
-        actionType === "football_prediction" ? "football_prediction" : undefined,
+      actionType: ALLOWED_ACTION_TYPES.includes(actionType as UserActionType)
+        ? (actionType as UserActionType)
+        : undefined,
     });
 
     return NextResponse.json({

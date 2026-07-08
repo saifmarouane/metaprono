@@ -15,12 +15,10 @@ import {
   RefreshCw,
   Search,
   Send,
-  ShieldAlert,
   Sparkles,
   Swords,
   TrendingUp,
   Trophy,
-  Users,
   Radio,
   type LucideIcon,
 } from "lucide-react";
@@ -118,6 +116,178 @@ type PredictionData = {
     error: string | null;
   };
 };
+
+type TeamStatisticsComparisonData = {
+  generatedAt: string;
+  timezone: string;
+  teams: {
+    teamA: { id: number; name: string; logo: string | null };
+    teamB: { id: number; name: string; logo: string | null };
+  };
+  teamAJson: unknown;
+  teamBJson: unknown;
+  shared?: {
+    headToHead?: unknown[];
+    warnings?: Record<string, string | null>;
+  };
+};
+
+type TeamStatisticsAiAnalysis = {
+  outputText: string;
+  sentPrompt?: string;
+  model?: string;
+  promptName?: string;
+};
+
+function extractTeamStatisticsJsons(
+  teamAJsonInput: unknown,
+  teamBJsonInput: unknown
+) {
+  const teamAJson = teamAJsonInput;
+  const teamBJson = teamBJsonInput;
+
+  return {
+    teamAJson,
+    teamBJson,
+  };
+}
+
+function normalizeAiHtmlResponse(value: string): string {
+  return value
+    .trim()
+    .replace(/^```html\s*/i, "")
+    .replace(/^```\s*/i, "")
+    .replace(/\s*```$/i, "")
+    .trim();
+}
+
+type JsonTableRow = {
+  path: string;
+  value: string;
+};
+
+function formatJsonTableValue(value: unknown): string {
+  if (value === null) {
+    return "null";
+  }
+
+  if (value === undefined) {
+    return "undefined";
+  }
+
+  if (typeof value === "string") {
+    return value;
+  }
+
+  if (
+    typeof value === "number" ||
+    typeof value === "boolean" ||
+    typeof value === "bigint"
+  ) {
+    return String(value);
+  }
+
+  return JSON.stringify(value);
+}
+
+function flattenJsonForTable(
+  value: unknown,
+  prefix = "",
+  rows: JsonTableRow[] = [],
+  maxRows = 220
+): JsonTableRow[] {
+  if (rows.length >= maxRows) {
+    return rows;
+  }
+
+  if (Array.isArray(value)) {
+    if (value.length === 0) {
+      rows.push({ path: prefix || "root", value: "[]" });
+      return rows;
+    }
+
+    value.forEach((item, index) => {
+      if (rows.length < maxRows) {
+        flattenJsonForTable(item, `${prefix}[${index}]`, rows, maxRows);
+      }
+    });
+    return rows;
+  }
+
+  if (value && typeof value === "object") {
+    const entries = Object.entries(value as Record<string, unknown>);
+
+    if (entries.length === 0) {
+      rows.push({ path: prefix || "root", value: "{}" });
+      return rows;
+    }
+
+    for (const [key, entryValue] of entries) {
+      if (rows.length >= maxRows) {
+        break;
+      }
+
+      flattenJsonForTable(
+        entryValue,
+        prefix ? `${prefix}.${key}` : key,
+        rows,
+        maxRows
+      );
+    }
+
+    return rows;
+  }
+
+  rows.push({ path: prefix || "value", value: formatJsonTableValue(value) });
+  return rows;
+}
+
+function JsonDataTable({
+  title,
+  data,
+}: {
+  title: string;
+  data: unknown;
+}) {
+  const rows = flattenJsonForTable(data);
+
+  return (
+    <section className="min-w-0 overflow-hidden rounded-xl border border-white/10 bg-[#10213d] shadow-lg shadow-black/15">
+      <div className="border-b border-white/10 px-4 py-3">
+        <h4 className="text-sm font-black text-white">{title}</h4>
+        <p className="mt-1 text-xs text-slate-500">
+          {rows.length} ligne(s) affichee(s)
+        </p>
+      </div>
+      <div className="max-h-[640px] overflow-auto">
+        <table className="w-full min-w-[620px] border-collapse text-left text-xs">
+          <thead className="sticky top-0 bg-[#10213d] text-slate-400">
+            <tr>
+              <th className="border-b border-white/10 px-4 py-3 font-black uppercase">
+                Champ
+              </th>
+              <th className="border-b border-white/10 px-4 py-3 font-black uppercase">
+                Valeur
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, index) => (
+              <tr key={`${row.path}-${index}`} className="border-b border-white/5">
+                <td className="max-w-[260px] break-words px-4 py-2 font-bold text-cyan-100">
+                  {row.path}
+                </td>
+                <td className="break-words px-4 py-2 text-slate-200">
+                  {row.value}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
 
 type AiStructuredPrediction = {
   verdict: {
@@ -262,9 +432,16 @@ type TeamAnalytics = {
 type UserActionHistoryItem = {
   id: string;
   label: string;
-  actionType: "football_prediction";
+  actionType:
+    | "football_prediction"
+    | "team_statistics"
+    | "team_statistics_ai_analysis";
   createdAt: string;
   payload?: {
+    teams?: {
+      teamA?: { name?: string; logo?: string | null };
+      teamB?: { name?: string; logo?: string | null };
+    };
     result?: {
       teams?: {
         teamA?: { name?: string; logo?: string | null };
@@ -276,8 +453,23 @@ type UserActionHistoryItem = {
         teamBWin?: number;
       };
     };
+    model?: string;
+    promptName?: string;
+    outputPreview?: string;
   };
 };
+
+function getHistoryActionLabel(actionType: UserActionHistoryItem["actionType"]) {
+  if (actionType === "team_statistics") {
+    return "Statistiques";
+  }
+
+  if (actionType === "team_statistics_ai_analysis") {
+    return "Analyse IA";
+  }
+
+  return "Prediction";
+}
 
 type WorkspaceSection = "predictions" | "live" | "finished" | "upcoming" | "statistics";
 type PredictionTargetMode = "country" | "team";
@@ -1026,7 +1218,7 @@ function AiAnalysisSection({ prediction }: { prediction: PredictionData }) {
             <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
               <h4 className="font-black text-white">10 derniers matchs joues</h4>
               <p className="text-xs font-bold text-slate-500">
-                Jusqu'a 10 matchs par equipe selon les sources trouvees
+                Jusqu&apos;a 10 matchs par equipe selon les sources trouvees
               </p>
             </div>
             <div className="mt-3 overflow-x-auto">
@@ -1099,7 +1291,7 @@ function AiAnalysisSection({ prediction }: { prediction: PredictionData }) {
               ))}
               {structured.predictionFactors.length === 0 && (
                 <p className="rounded-lg border border-cyan-300/15 bg-black/15 p-3 text-sm text-cyan-100/75 md:col-span-2">
-                  Facteurs non disponibles. L'IA n'a pas retourne de details
+                  Facteurs non disponibles. L&apos;IA n&apos;a pas retourne de details
                   exploitables.
                 </p>
               )}
@@ -1317,7 +1509,7 @@ function SelectedTeamsInsight({
         <div>
           <h3 className="font-black text-white">Apercu avant prediction</h3>
           <p className="text-xs text-slate-400">
-            Les donnees completes arrivent apres l'appel prediction.
+            Les donnees completes arrivent apres l&apos;appel prediction.
           </p>
         </div>
       </div>
@@ -1362,158 +1554,6 @@ function SelectedTeamsInsight({
           label="Pret"
           value={bothSelected ? "Oui, lancer la prediction" : "Deux equipes requises"}
         />
-      </div>
-    </section>
-  );
-}
-
-function PredictionEvidenceSection({ prediction }: { prediction: PredictionData }) {
-  const teamA = prediction.teamAnalytics?.teamA;
-  const teamB = prediction.teamAnalytics?.teamB;
-
-  return (
-    <section className="rounded-xl border border-white/10 bg-[#0d1b33] p-4 shadow-lg shadow-black/15">
-      <div className="mb-4 flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-300/10 text-amber-200">
-          <Trophy className="h-5 w-5" />
-        </div>
-        <div>
-          <h3 className="font-black text-white">Contexte et preuves</h3>
-          <p className="text-xs text-slate-400">
-            Fixture trouve, confrontations directes et derniers matchs disponibles.
-          </p>
-        </div>
-      </div>
-
-      <div className="grid gap-3 lg:grid-cols-3">
-        <StatTile
-          label="Match cible"
-          value={
-            prediction.fixture
-              ? `${prediction.fixture.home.name ?? "-"} vs ${
-                  prediction.fixture.away.name ?? "-"
-                }`
-              : "Non trouve"
-          }
-        />
-        <StatTile
-          label="Competition"
-          value={prediction.fixture?.competition.name ?? "-"}
-        />
-        <StatTile
-          label="Confrontations"
-          value={prediction.headToHead.count}
-        />
-      </div>
-
-      <div className="mt-4 grid gap-4 xl:grid-cols-3">
-        <div className="rounded-lg border border-white/10 bg-black/15 p-3 xl:col-span-1">
-          <p className="text-xs font-black uppercase text-slate-500">
-            Head-to-head
-          </p>
-          <div className="mt-3 grid gap-2">
-            {prediction.headToHead.matches.length === 0 && (
-              <p className="text-sm text-slate-400">
-                Aucune confrontation directe terminee disponible.
-              </p>
-            )}
-            {prediction.headToHead.matches.slice(0, 5).map((match) => (
-              <div
-                key={match.fixtureId ?? `${match.date}-${match.home.id}-${match.away.id}`}
-                className="rounded-lg border border-white/10 bg-white/[0.03] p-3"
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <p className="min-w-0 truncate text-xs font-black text-white">
-                    {match.home.name ?? "-"} vs {match.away.name ?? "-"}
-                  </p>
-                  <span className="shrink-0 rounded-md bg-white/[0.07] px-2 py-1 text-xs font-black text-cyan-100">
-                    {match.goals.home ?? "-"}-{match.goals.away ?? "-"}
-                  </span>
-                </div>
-                <p className="mt-1 truncate text-[11px] text-slate-500">
-                  {match.competition.name ?? "-"} · {formatDate(match.date)}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {[teamA, teamB].map((analytics, index) => (
-          <div
-            key={analytics?.team.id ?? `analytics-placeholder-${index}`}
-            className="rounded-lg border border-white/10 bg-black/15 p-3"
-          >
-            <p className="text-xs font-black uppercase text-slate-500">
-              {analytics?.team.name ?? "Equipe"}: forme recente
-            </p>
-            <div className="mt-3 grid grid-cols-2 gap-2">
-              <StatTile label="Joues" value={analytics?.recent.summary.played} />
-              <StatTile label="Victoires" value={analytics?.recent.summary.wins} />
-              <StatTile label="Nuls" value={analytics?.recent.summary.draws} />
-              <StatTile label="Defaites" value={analytics?.recent.summary.losses} />
-              <StatTile label="Buts pour" value={analytics?.recent.summary.goalsFor} />
-              <StatTile label="Buts contre" value={analytics?.recent.summary.goalsAgainst} />
-            </div>
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function ExpectedLineupsSection({ prediction }: { prediction: PredictionData }) {
-  return (
-    <section className="rounded-xl border border-white/10 bg-[#0d1b33] p-4">
-      <div className="mb-4 flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-lime-300/10 text-lime-200">
-          <Users className="h-5 w-5" />
-        </div>
-        <div>
-          <h3 className="font-black text-white">Joueurs qui vont jouer</h3>
-          <p className="text-xs text-slate-400">
-            Compositions API-FOOTBALL si elles sont publiees pour le fixture.
-          </p>
-        </div>
-      </div>
-      <div className="grid gap-4 lg:grid-cols-2">
-        {prediction.lineups.length === 0 && (
-          <p className="rounded-lg border border-white/10 bg-black/15 p-3 text-sm text-slate-400 lg:col-span-2">
-            Compositions non disponibles pour ce match.
-          </p>
-        )}
-        {prediction.lineups.map((lineup) => (
-          <article
-            key={lineup.team?.id ?? lineup.team?.name}
-            className="rounded-xl border border-white/10 bg-[#10213d] p-4"
-          >
-            <div className="mb-4 flex items-center gap-3">
-              <TeamMark src={lineup.team?.logo} name={lineup.team?.name} className="h-10 w-10" />
-              <div className="min-w-0">
-                <p className="truncate font-black text-white">
-                  {lineup.team?.name ?? "Equipe"}
-                </p>
-                <p className="text-xs text-slate-400">
-                  Formation {lineup.formation ?? "-"}
-                </p>
-              </div>
-            </div>
-            <div className="grid gap-2 sm:grid-cols-2">
-              {(lineup.startXI ?? []).slice(0, 11).map((item) => (
-                <div
-                  key={item.player?.id ?? item.player?.name}
-                  className="rounded-lg border border-white/10 bg-black/15 p-2"
-                >
-                  <p className="truncate text-xs font-black text-white">
-                    {item.player?.name ?? "Joueur"}
-                  </p>
-                  <p className="text-[11px] text-slate-500">
-                    {item.player?.pos ?? "-"}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </article>
-        ))}
       </div>
     </section>
   );
@@ -1885,6 +1925,15 @@ export default function ChatSlotPage() {
   const [teamASearchLoading, setTeamASearchLoading] = useState(false);
   const [teamBSearchLoading, setTeamBSearchLoading] = useState(false);
   const [prediction, setPrediction] = useState<PredictionData | null>(null);
+  const [statisticsReport, setStatisticsReport] =
+    useState<TeamStatisticsComparisonData | null>(null);
+  const [statisticsAiHtml, setStatisticsAiHtml] = useState("");
+  const [statisticsAiRawResponse, setStatisticsAiRawResponse] = useState("");
+  const [statisticsAiSentPrompt, setStatisticsAiSentPrompt] = useState("");
+  const [statisticsAiStatus, setStatisticsAiStatus] = useState<{
+    type: "idle" | "loading" | "success" | "error";
+    message: string;
+  }>({ type: "idle", message: "" });
   const [predictionStatus, setPredictionStatus] = useState<{
     type: "idle" | "loading" | "success" | "error";
     message: string;
@@ -1917,6 +1966,17 @@ export default function ChatSlotPage() {
       (team) => normalizeTeamLookup(team.name) === normalizeTeamLookup(teamB)
     ) ??
     null;
+  const blockingLoadingMessage =
+    predictionStatus.type === "loading"
+      ? "Extraction des statistiques depuis API-FOOTBALL, lecture des donnees CRM, liaison avec le LLM et preparation de la prediction..."
+      : statisticsAiStatus.type === "loading"
+        ? "Connexion au LLM, lecture des statistiques et generation de la reponse finale..."
+        : aiPredictionStatus.type === "loading"
+          ? aiPredictionStatus.message
+          : dashboardStatus.type === "loading"
+            ? dashboardStatus.message
+            : "";
+  const isScreenBlocked = Boolean(blockingLoadingMessage);
 
   async function loadDashboard() {
     setDashboardRequested(true);
@@ -1947,9 +2007,7 @@ export default function ChatSlotPage() {
 
   async function loadPredictionHistory() {
     try {
-      const response = await fetch(
-        "/api/user-actions?actionType=football_prediction&limit=8"
-      );
+      const response = await fetch("/api/user-actions?limit=12");
       const result = (await response.json()) as
         | { ok: true; actions: UserActionHistoryItem[] }
         | { ok?: false; error?: string };
@@ -2073,9 +2131,14 @@ export default function ChatSlotPage() {
 
     setPredictionStatus({
       type: "loading",
-      message: "Recherche equipes, prediction, compositions et blessures...",
+      message: "Chargement statistiques globales, effectifs, blessures et matchs...",
     });
     setPrediction(null);
+    setStatisticsReport(null);
+    setStatisticsAiHtml("");
+    setStatisticsAiRawResponse("");
+    setStatisticsAiSentPrompt("");
+    setStatisticsAiStatus({ type: "idle", message: "" });
 
     try {
       const params = new URLSearchParams({
@@ -2092,24 +2155,94 @@ export default function ChatSlotPage() {
         if (resolvedTeamB.logo) params.set("teamBLogo", resolvedTeamB.logo);
         if (resolvedTeamB.country) params.set("teamBCountry", resolvedTeamB.country);
       }
-      const response = await fetch(`/api/football/predict?${params}`);
+      if (teamALeagueFilter?.id && teamALeagueFilter.season) {
+        params.set("teamALeagueId", String(teamALeagueFilter.id));
+        params.set("teamASeason", String(teamALeagueFilter.season));
+      }
+      if (teamBLeagueFilter?.id && teamBLeagueFilter.season) {
+        params.set("teamBLeagueId", String(teamBLeagueFilter.id));
+        params.set("teamBSeason", String(teamBLeagueFilter.season));
+      }
+      const response = await fetch(`/api/football/team-statistics?${params}`);
       const result = (await response.json()) as
-        | ({ ok: true } & PredictionData)
+        | ({ ok: true } & TeamStatisticsComparisonData)
         | { ok?: false; error?: string };
 
       if (!response.ok || result.ok !== true) {
-        throw new Error("error" in result && result.error ? result.error : "Erreur prediction");
+        throw new Error(
+          "error" in result && result.error
+            ? result.error
+            : "Erreur statistiques"
+        );
       }
 
-      setPrediction(result);
+      const { teamAJson, teamBJson } = extractTeamStatisticsJsons(
+        result.teamAJson,
+        result.teamBJson
+      );
+      setStatisticsReport(result);
       setPredictionStatus({
         type: "success",
-        message: `Prediction prete pour ${result.teams.teamA.name} vs ${result.teams.teamB.name}.`,
+        message: `Statistiques chargees pour ${result.teams.teamA.name} et ${result.teams.teamB.name}: ${teamAJson ? "JSON A OK" : "JSON A vide"}, ${teamBJson ? "JSON B OK" : "JSON B vide"}.`,
+      });
+      setHistoryLoaded(false);
+      void loadPredictionHistory();
+      await runStatisticsAiAnalysis(result);
+    } catch (error) {
+      setPredictionStatus({
+        type: "error",
+        message: error instanceof Error ? error.message : "Erreur inconnue",
+      });
+    }
+  }
+
+  async function runStatisticsAiAnalysis(reportInput?: TeamStatisticsComparisonData) {
+    const report = reportInput ?? statisticsReport;
+
+    if (!report) {
+      return;
+    }
+
+    setStatisticsAiStatus({
+      type: "loading",
+      message: "Generation HTML IA...",
+    });
+    setStatisticsAiHtml("");
+    setStatisticsAiRawResponse("");
+    setStatisticsAiSentPrompt("");
+
+    try {
+      const response = await fetch("/api/football/analyze-statistics", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          teamAJson: report.teamAJson,
+          teamBJson: report.teamBJson,
+        }),
+      });
+      const result = (await response.json()) as
+        | { ok: true; analysis: TeamStatisticsAiAnalysis }
+        | { ok?: false; error?: string };
+
+      if (!response.ok || result.ok !== true) {
+        throw new Error(
+          "error" in result && result.error
+            ? result.error
+            : "Erreur analyse IA"
+        );
+      }
+
+      setStatisticsAiRawResponse(result.analysis.outputText);
+      setStatisticsAiSentPrompt(result.analysis.sentPrompt ?? "");
+      setStatisticsAiHtml(normalizeAiHtmlResponse(result.analysis.outputText));
+      setStatisticsAiStatus({
+        type: "success",
+        message: `HTML IA genere${result.analysis.model ? ` avec ${result.analysis.model}` : ""}.`,
       });
       setHistoryLoaded(false);
       await loadPredictionHistory();
     } catch (error) {
-      setPredictionStatus({
+      setStatisticsAiStatus({
         type: "error",
         message: error instanceof Error ? error.message : "Erreur inconnue",
       });
@@ -2437,6 +2570,27 @@ export default function ChatSlotPage() {
 
   return (
     <div className="relative h-full overflow-y-auto px-3 py-4 sm:px-6 lg:px-8">
+      {isScreenBlocked && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-[#06101f]/85 px-4 text-white backdrop-blur-sm"
+          role="status"
+          aria-live="polite"
+          aria-busy="true"
+        >
+          <div className="w-full max-w-sm rounded-xl border border-white/10 bg-[#10213d] p-5 text-center shadow-2xl shadow-black/40">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-xl bg-lime-300/10 text-lime-200 ring-1 ring-lime-300/20">
+              <Loader2 className="h-7 w-7 animate-spin" />
+            </div>
+            <h3 className="mt-4 text-lg font-black">Prediction en cours</h3>
+            <p className="mt-2 text-sm leading-6 text-slate-300">
+              {blockingLoadingMessage}
+            </p>
+            <p className="mt-3 text-xs font-bold uppercase text-slate-500">
+              Extraction data · LLM · Generation
+            </p>
+          </div>
+        </div>
+      )}
       <div className="mx-auto max-w-7xl space-y-5">
         <section className="overflow-hidden rounded-xl border border-white/10 bg-[#10213d] shadow-2xl shadow-black/20">
           <div className="grid gap-5 p-4 sm:p-5 lg:grid-cols-[1fr_auto] lg:items-center">
@@ -2454,7 +2608,7 @@ export default function ChatSlotPage() {
                 </h2>
                 <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-300">
                   Suis les matchs en cours, les rencontres terminees et les
-                  prochains coups d'envoi depuis API-FOOTBALL.
+                  prochains coups d&apos;envoi depuis API-FOOTBALL.
                 </p>
               </div>
             </div>
@@ -2591,13 +2745,13 @@ export default function ChatSlotPage() {
                 </div>
                 <div className="min-w-0">
                   <p className="text-xs font-black uppercase text-lime-100/80">
-                    Prediction center
+                    Data center
                   </p>
                   <h3 className="mt-1 text-xl font-black text-white sm:text-2xl">
-                    Analyse avancee de match
+                    Statistiques globales des equipes
                   </h3>
                   <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-400">
-                    Filtre par pays, ville, ligue et equipe. La prediction affiche les probabilites, les statistiques, les joueurs disponibles, les absences et les evenements recents.
+                    Filtre par pays, ville, ligue et equipe. Le resultat affiche deux JSON avec les donnees statistiques disponibles pour chaque equipe.
                   </p>
                 </div>
               </div>
@@ -2605,7 +2759,7 @@ export default function ChatSlotPage() {
                 {[
                   ["Equipe A", resolvedTeamA ? "OK" : "-"],
                   ["Equipe B", resolvedTeamB ? "OK" : "-"],
-                  ["Source", prediction?.percentages.source ?? "API"],
+                  ["Source", statisticsReport ? "API-FOOTBALL" : "API"],
                 ].map(([label, value]) => (
                   <div key={label} className="rounded-md bg-white/[0.04] px-3 py-2">
                     <p className="text-[10px] font-black uppercase text-slate-500">
@@ -2838,7 +2992,7 @@ export default function ChatSlotPage() {
                   }`}
                 >
                   {resolvedTeamA && resolvedTeamB
-                    ? "Deux equipes API sont selectionnees. Tu peux lancer la prediction."
+                    ? "Deux equipes API sont selectionnees. Tu peux charger leurs statistiques."
                     : "Pour valider, clique une ligne dans la section Equipes avec le badge Choisir. Les pays, ligues et villes sont seulement des filtres."}
                 </div>
                 <button
@@ -2855,7 +3009,7 @@ export default function ChatSlotPage() {
                   ) : (
                     <Search className="h-4 w-4" />
                   )}
-                  Predire
+                  Lancer la prediction
                 </button>
               </form>
 
@@ -2876,18 +3030,20 @@ export default function ChatSlotPage() {
                 <div className="mb-3 flex items-center gap-2">
                   <History className="h-4 w-4 text-amber-300" />
                   <h4 className="text-sm font-black text-white">
-                    Historique predictions
+                    Historique activite
                   </h4>
                 </div>
                 <div className="grid gap-2">
                   {history.length === 0 && (
                     <p className="rounded-lg border border-white/10 bg-black/15 p-3 text-sm text-slate-400">
-                      Aucune prediction enregistree pour cet utilisateur.
+                      Aucune activite enregistree pour cet utilisateur.
                     </p>
                   )}
                   {history.map((item) => {
                     const percentages = item.payload?.result?.percentages;
-                    const resultTeams = item.payload?.result?.teams;
+                    const resultTeams =
+                      item.payload?.result?.teams ?? item.payload?.teams;
+                    const actionLabel = getHistoryActionLabel(item.actionType);
 
                     return (
                       <div
@@ -2896,28 +3052,51 @@ export default function ChatSlotPage() {
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex min-w-0 items-center gap-2">
-                            <TeamMark
-                              src={resultTeams?.teamA?.logo}
-                              name={resultTeams?.teamA?.name}
-                              className="h-5 w-5"
-                            />
+                            {resultTeams?.teamA ? (
+                              <TeamMark
+                                src={resultTeams.teamA.logo}
+                                name={resultTeams.teamA.name}
+                                className="h-5 w-5"
+                              />
+                            ) : (
+                              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-cyan-300/20 bg-cyan-300/10 text-cyan-100">
+                                <Bot className="h-3 w-3" />
+                              </span>
+                            )}
                             <p className="min-w-0 truncate text-sm font-black text-white">
                               {item.label}
                             </p>
-                            <TeamMark
-                              src={resultTeams?.teamB?.logo}
-                              name={resultTeams?.teamB?.name}
-                              className="h-5 w-5"
-                            />
+                            {resultTeams?.teamB && (
+                              <TeamMark
+                                src={resultTeams.teamB.logo}
+                                name={resultTeams.teamB.name}
+                                className="h-5 w-5"
+                              />
+                            )}
                           </div>
                           <span className="whitespace-nowrap text-xs text-slate-500">
                             {formatDate(item.createdAt)}
                           </span>
                         </div>
+                        <div className="mt-2 flex flex-wrap items-center gap-2">
+                          <span className="rounded-md border border-amber-300/15 bg-amber-300/10 px-2 py-1 text-[11px] font-black uppercase text-amber-100">
+                            {actionLabel}
+                          </span>
+                          {item.payload?.model && (
+                            <span className="rounded-md border border-cyan-300/15 bg-cyan-300/10 px-2 py-1 text-[11px] font-black text-cyan-100">
+                              {item.payload.model}
+                            </span>
+                          )}
+                        </div>
                         {percentages && (
                           <p className="mt-2 text-xs font-bold text-slate-300">
                             {percentages.teamAWin}% · {percentages.draw}% ·{" "}
                             {percentages.teamBWin}%
+                          </p>
+                        )}
+                        {item.payload?.outputPreview && (
+                          <p className="mt-2 line-clamp-2 text-xs leading-5 text-slate-400">
+                            {item.payload.outputPreview}
                           </p>
                         )}
                       </div>
@@ -2928,7 +3107,7 @@ export default function ChatSlotPage() {
             </div>
 
             <div className="min-w-0 space-y-5">
-              {!prediction && (resolvedTeamA || resolvedTeamB) && (
+              {!statisticsReport && (resolvedTeamA || resolvedTeamB) && (
                 <SelectedTeamsInsight
                   selectedTeamA={resolvedTeamA}
                   selectedTeamB={resolvedTeamB}
@@ -2941,7 +3120,7 @@ export default function ChatSlotPage() {
                 />
               )}
 
-              {!prediction && (
+              {!statisticsReport && (
                 <div className="min-h-[520px] rounded-xl border border-white/10 bg-[#10213d] p-4 shadow-lg shadow-black/15 sm:p-6">
                   <div className="grid h-full gap-5 lg:grid-cols-[1fr_260px] lg:items-center">
                     <div>
@@ -2949,17 +3128,17 @@ export default function ChatSlotPage() {
                         <Sparkles className="h-6 w-6" />
                       </div>
                       <h3 className="max-w-2xl text-2xl font-black text-white">
-                        Choisis deux equipes pour lancer une analyse complete
+                        Choisis deux equipes pour charger leurs donnees
                       </h3>
                       <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-400">
-                        Le resultat affichera les probabilites de victoire, la source de prediction, les statistiques des equipes, les buteurs recents, la discipline, l'effectif, les compositions et les blessures.
+                        Le resultat affichera deux JSON separes avec les matchs recents et a venir, statistiques par competition, classement, effectif, blessures et evenements recents.
                       </p>
                       <div className="mt-6 grid gap-3 sm:grid-cols-2">
                         {[
                           ["1", "Filtrer", "Pays, ville, ligue ou nom d'equipe"],
                           ["2", "Selectionner", "Choisir uniquement une equipe API"],
-                          ["3", "Predire", "Comparer probabilites et statistiques"],
-                          ["4", "Analyser", "Voir joueurs, forme, buts et cartons"],
+                          ["3", "Charger", "Appeler les APIs de statistiques"],
+                          ["4", "Analyser", "Lire les deux JSON equipes"],
                         ].map(([step, title, text]) => (
                           <div
                             key={step}
@@ -3005,122 +3184,180 @@ export default function ChatSlotPage() {
                 </div>
               )}
 
-              {prediction && (
-                <>
+              {statisticsReport && (
+                <div className="grid gap-5">
                   <div className="rounded-xl border border-white/10 bg-[#10213d] p-4 shadow-lg shadow-black/15 sm:p-5">
-                    <div className="grid gap-5 lg:grid-cols-[1fr_320px] lg:items-center">
-                      <div>
-                        <p className="text-xs font-black uppercase text-lime-100/80">
-                          Resultat prediction
-                        </p>
-                        <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center">
-                          <div className="flex min-w-0 flex-1 items-center gap-3 rounded-lg border border-white/10 bg-black/15 p-3">
-                            <TeamMark
-                              src={prediction.teams.teamA.logo}
-                              name={prediction.teams.teamA.name}
-                              className="h-12 w-12 rounded-lg"
-                            />
-                            <div className="min-w-0">
-                              <p className="truncate text-base font-black text-white">
-                                {prediction.teams.teamA.name}
-                              </p>
-                              <p className="text-xs text-slate-500">
-                                {prediction.percentages.source === "ai-web-search"
-                                  ? "Analyse IA"
-                                  : `${prediction.percentages.teamAWin}% victoire`}
-                              </p>
-                            </div>
-                          </div>
-                          <span className="self-center rounded-md border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-black uppercase text-slate-400">
-                            vs
-                          </span>
-                          <div className="flex min-w-0 flex-1 items-center gap-3 rounded-lg border border-white/10 bg-black/15 p-3">
-                            <TeamMark
-                              src={prediction.teams.teamB.logo}
-                              name={prediction.teams.teamB.name}
-                              className="h-12 w-12 rounded-lg"
-                            />
-                            <div className="min-w-0">
-                              <p className="truncate text-base font-black text-white">
-                                {prediction.teams.teamB.name}
-                              </p>
-                              <p className="text-xs text-slate-500">
-                                {prediction.percentages.source === "ai-web-search"
-                                  ? "Analyse IA"
-                                  : `${prediction.percentages.teamBWin}% victoire`}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                        <p className="mt-3 text-xs text-slate-400">
-                          Source: {prediction.percentages.source}
-                        </p>
-                      </div>
-
-                      <div className="rounded-xl border border-white/10 bg-black/15 p-4">
-                        <p className="text-xs font-black uppercase text-slate-500">
-                          Probabilites
-                        </p>
-                        {prediction.percentages.source === "ai-web-search" ? (
-                          <p className="mt-4 rounded-lg border border-lime-300/15 bg-lime-300/10 p-3 text-sm leading-6 text-lime-100">
-                            Les probabilites sont calculees et expliquees dans
-                            la prediction IA. API-FOOTBALL ne fournit ici que
-                            les equipes et logos.
+                    <p className="text-xs font-black uppercase text-lime-100/80">
+                      Donnees statistiques
+                    </p>
+                    <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center">
+                      <div className="flex min-w-0 flex-1 items-center gap-3 rounded-lg border border-white/10 bg-black/15 p-3">
+                        <TeamMark
+                          src={statisticsReport.teams.teamA.logo}
+                          name={statisticsReport.teams.teamA.name}
+                          className="h-12 w-12 rounded-lg"
+                        />
+                        <div className="min-w-0">
+                          <p className="truncate text-base font-black text-white">
+                            {statisticsReport.teams.teamA.name}
                           </p>
-                        ) : (
-                          <div className="mt-4 grid gap-4">
-                            <PercentBar label={`${prediction.teams.teamA.name} gagne`} value={prediction.percentages.teamAWin} tone="bg-emerald-300" />
-                            <PercentBar label="Egalite" value={prediction.percentages.draw} tone="bg-amber-300" />
-                            <PercentBar label={`${prediction.teams.teamB.name} gagne`} value={prediction.percentages.teamBWin} tone="bg-cyan-300" />
-                          </div>
-                        )}
+                          <p className="text-xs text-slate-500">JSON equipe A</p>
+                        </div>
+                      </div>
+                      <span className="self-center rounded-md border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-black uppercase text-slate-400">
+                        vs
+                      </span>
+                      <div className="flex min-w-0 flex-1 items-center gap-3 rounded-lg border border-white/10 bg-black/15 p-3">
+                        <TeamMark
+                          src={statisticsReport.teams.teamB.logo}
+                          name={statisticsReport.teams.teamB.name}
+                          className="h-12 w-12 rounded-lg"
+                        />
+                        <div className="min-w-0">
+                          <p className="truncate text-base font-black text-white">
+                            {statisticsReport.teams.teamB.name}
+                          </p>
+                          <p className="text-xs text-slate-500">JSON equipe B</p>
+                        </div>
                       </div>
                     </div>
-                    {prediction.advice && (
-                      <p className="mt-5 rounded-lg border border-cyan-300/15 bg-cyan-300/10 p-3 text-sm leading-6 text-cyan-100">
-                        {prediction.advice}
-                      </p>
-                    )}
+                    <p className="mt-3 text-xs text-slate-400">
+                      Source: API-FOOTBALL · Genere:{" "}
+                      {formatDate(statisticsReport.generatedAt)} · H2H:{" "}
+                      {statisticsReport.shared?.headToHead?.length ?? 0} match(s)
+                    </p>
                   </div>
 
-                  {prediction.percentages.source !== "ai-web-search" && (
-                    <>
-                      <PredictionEvidenceSection prediction={prediction} />
-                      <TeamAnalyticsSection prediction={prediction} />
-                      <ExpectedLineupsSection prediction={prediction} />
-
-                      <div className="rounded-xl border border-red-300/15 bg-red-400/10 p-4">
-                        <div className="mb-3 flex items-center gap-2 text-sm font-black text-red-100">
-                          <ShieldAlert className="h-4 w-4" />
-                          Joueurs blesses
+                  <section className="overflow-hidden rounded-xl border border-white/10 bg-[#10213d] shadow-lg shadow-black/15">
+                    <div className="flex flex-col gap-3 border-b border-white/10 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-cyan-300/10 text-cyan-200">
+                          <Bot className="h-4 w-4" />
                         </div>
-                        <div className="grid gap-2 md:grid-cols-2">
-                          {prediction.injuries.length === 0 && (
-                            <p className="rounded-lg border border-white/10 bg-black/15 p-3 text-sm text-red-100/80 md:col-span-2">
-                              Aucun blesse retourne par API-FOOTBALL pour ce match.
-                            </p>
-                          )}
-                          {prediction.injuries.slice(0, 12).map((injury) => (
-                            <div key={`${injury.team?.id}-${injury.player?.id}-${injury.player?.name}`} className="rounded-lg border border-red-300/15 bg-black/15 p-3 text-sm">
-                              <div className="flex items-center gap-2">
-                                <TeamMark
-                                  src={injury.team?.logo}
-                                  name={injury.team?.name}
-                                />
-                                <p className="min-w-0 truncate font-black text-red-100">
-                                  {injury.player?.name ?? "Joueur"}
-                                </p>
-                              </div>
-                              <p className="mt-1 text-xs text-red-100/80">
-                                {injury.team?.name ?? "Equipe"} · {injury.player?.type ?? "Absence"} · {injury.player?.reason ?? "Raison non precisee"}
-                              </p>
-                            </div>
-                          ))}
+                        <div>
+                          <h4 className="text-sm font-black text-white">
+                            Analyse IA HTML
+                          </h4>
+                          <p className="text-xs text-slate-500">
+                            {statisticsAiStatus.message ||
+                              "Demarre automatiquement apres les statistiques"}
+                          </p>
                         </div>
                       </div>
-                    </>
+                      <button
+                        type="button"
+                        onClick={() => runStatisticsAiAnalysis()}
+                        disabled={statisticsAiStatus.type === "loading"}
+                        className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-cyan-400 px-4 text-sm font-black text-white transition hover:bg-cyan-300 disabled:cursor-not-allowed disabled:opacity-55"
+                      >
+                        {statisticsAiStatus.type === "loading" ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Sparkles className="h-4 w-4" />
+                        )}
+                        Relancer IA
+                      </button>
+                    </div>
+
+                    {statisticsAiStatus.type === "error" && (
+                      <p className="m-4 rounded-lg border border-red-400/25 bg-red-400/10 px-3 py-2 text-sm font-bold text-red-200">
+                        {statisticsAiStatus.message}
+                      </p>
+                    )}
+
+                    {statisticsAiHtml ? (
+                      <iframe
+                        title="Analyse IA HTML"
+                        srcDoc={statisticsAiHtml}
+                        sandbox=""
+                        className="h-[720px] w-full border-0 bg-white"
+                      />
+                    ) : (
+                      <div className="min-h-[220px] p-4">
+                        <div className="flex min-h-[188px] items-center justify-center rounded-lg border border-white/10 bg-black/15 text-sm font-bold text-slate-400">
+                          HTML IA non genere
+                        </div>
+                      </div>
+                    )}
+                  </section>
+
+                  {(statisticsAiSentPrompt || statisticsAiRawResponse) && (
+                    <div className="grid gap-5 2xl:grid-cols-2">
+                      <section className="min-w-0 rounded-xl border border-white/10 bg-[#10213d] shadow-lg shadow-black/15">
+                        <div className="border-b border-white/10 px-4 py-3">
+                          <h4 className="text-sm font-black text-white">
+                            Prompt envoye a l&apos;IA
+                          </h4>
+                          <p className="mt-1 text-xs text-slate-500">
+                            Texte exact transmis avec les deux JSON.
+                          </p>
+                        </div>
+                        <pre className="max-h-[520px] overflow-auto whitespace-pre-wrap break-words p-4 text-xs leading-5 text-slate-200">
+                          {statisticsAiSentPrompt}
+                        </pre>
+                      </section>
+
+                      <section className="min-w-0 rounded-xl border border-white/10 bg-[#10213d] shadow-lg shadow-black/15">
+                        <div className="border-b border-white/10 px-4 py-3">
+                          <h4 className="text-sm font-black text-white">
+                            Reponse brute IA
+                          </h4>
+                          <p className="mt-1 text-xs text-slate-500">
+                            Contenu retourne avant affichage HTML.
+                          </p>
+                        </div>
+                        <pre className="max-h-[520px] overflow-auto whitespace-pre-wrap break-words p-4 text-xs leading-5 text-slate-200">
+                          {statisticsAiRawResponse}
+                        </pre>
+                      </section>
+                    </div>
                   )}
-                </>
+
+                  <div className="grid gap-5 2xl:grid-cols-2">
+                    <section className="min-w-0 rounded-xl border border-white/10 bg-[#10213d] shadow-lg shadow-black/15">
+                      <div className="flex items-center gap-3 border-b border-white/10 px-4 py-3">
+                        <TeamMark
+                          src={statisticsReport.teams.teamA.logo}
+                          name={statisticsReport.teams.teamA.name}
+                          className="h-8 w-8 rounded-lg"
+                        />
+                        <h4 className="min-w-0 truncate text-sm font-black text-white">
+                          JSON {statisticsReport.teams.teamA.name}
+                        </h4>
+                      </div>
+                      <pre className="max-h-[720px] overflow-auto p-4 text-xs leading-5 text-slate-200">
+                        {JSON.stringify(statisticsReport.teamAJson, null, 2)}
+                      </pre>
+                    </section>
+
+                    <section className="min-w-0 rounded-xl border border-white/10 bg-[#10213d] shadow-lg shadow-black/15">
+                      <div className="flex items-center gap-3 border-b border-white/10 px-4 py-3">
+                        <TeamMark
+                          src={statisticsReport.teams.teamB.logo}
+                          name={statisticsReport.teams.teamB.name}
+                          className="h-8 w-8 rounded-lg"
+                        />
+                        <h4 className="min-w-0 truncate text-sm font-black text-white">
+                          JSON {statisticsReport.teams.teamB.name}
+                        </h4>
+                      </div>
+                      <pre className="max-h-[720px] overflow-auto p-4 text-xs leading-5 text-slate-200">
+                        {JSON.stringify(statisticsReport.teamBJson, null, 2)}
+                      </pre>
+                    </section>
+                  </div>
+
+                  <div className="grid gap-5 2xl:grid-cols-2">
+                    <JsonDataTable
+                      title={`Table ${statisticsReport.teams.teamA.name}`}
+                      data={statisticsReport.teamAJson}
+                    />
+                    <JsonDataTable
+                      title={`Table ${statisticsReport.teams.teamB.name}`}
+                      data={statisticsReport.teamBJson}
+                    />
+                  </div>
+                </div>
               )}
             </div>
           </div>
@@ -3188,7 +3425,7 @@ export default function ChatSlotPage() {
                     <div>
                       <h3 className="font-black text-white">{competition.name}</h3>
                       <p className="mt-1 text-xs font-bold uppercase text-slate-400">
-                        {competition.country ?? "International"} · {competition.todayCount} match(s) aujourd'hui · {competition.liveCount} live
+                        {competition.country ?? "International"} · {competition.todayCount} match(s) aujourd&apos;hui · {competition.liveCount} live
                       </p>
                     </div>
                     <Clock3 className="h-5 w-5 text-amber-300" />
@@ -3196,7 +3433,7 @@ export default function ChatSlotPage() {
                   <div className="mt-4 grid gap-2 lg:grid-cols-3">
                     {competition.nextMatches.length === 0 && (
                       <div className="rounded-lg border border-white/10 bg-black/15 px-3 py-3 text-sm text-slate-400 lg:col-span-3">
-                        Aucun prochain match aujourd'hui pour cette competition.
+                        Aucun prochain match aujourd&apos;hui pour cette competition.
                       </div>
                     )}
                     {competition.nextMatches.map((match) => (
