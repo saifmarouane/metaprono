@@ -18,6 +18,7 @@ import { listAllUserActions, type PublicUserAction } from "@/lib/user-actions";
 
 export const dynamic = "force-dynamic";
 
+
 type AdminPageProps = {
   searchParams?: Promise<{
     collection?: string;
