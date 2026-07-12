@@ -644,17 +644,6 @@ const workspaceSections: Array<{
   },
 ];
 
-const quickCountryChoices: CountrySearchOption[] = [
-  { name: "Morocco", code: "MA", flag: "https://media.api-sports.io/flags/ma.svg" },
-  { name: "France", code: "FR", flag: "https://media.api-sports.io/flags/fr.svg" },
-  { name: "England", code: "GB", flag: "https://media.api-sports.io/flags/gb.svg" },
-  { name: "Spain", code: "ES", flag: "https://media.api-sports.io/flags/es.svg" },
-  { name: "Italy", code: "IT", flag: "https://media.api-sports.io/flags/it.svg" },
-  { name: "Germany", code: "DE", flag: "https://media.api-sports.io/flags/de.svg" },
-  { name: "Brazil", code: "BR", flag: "https://media.api-sports.io/flags/br.svg" },
-  { name: "Argentina", code: "AR", flag: "https://media.api-sports.io/flags/ar.svg" },
-];
-
 function formatDate(value: string | null) {
   if (!value) return "-";
   return new Intl.DateTimeFormat("fr-FR", {
@@ -669,8 +658,19 @@ function normalizeTeamLookup(value = "") {
   return value
     .normalize("NFD")
     .replace(/\p{Diacritic}/gu, "")
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
     .trim()
     .toLowerCase();
+}
+
+function normalizeTeamSearchQuery(value = "") {
+  return normalizeTeamLookup(value)
+    .replace(/\bparis\s+saint\s+german\b/g, "paris saint germain")
+    .replace(/\bpsg\b/g, "paris saint germain")
+    .replace(/\bman\s+city\b/g, "manchester city")
+    .replace(/\bman\s+(united|utd)\b/g, "manchester united")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function createNationalTeamOption(country: CountrySearchOption): TeamSearchOption {
@@ -1694,11 +1694,13 @@ function TeamSearchSelect({
   isLoading: boolean;
 }) {
   const displayedCountries =
-    query.trim()
+    mode === "country" && query.trim()
       ? countries.filter((country) =>
           normalizeTeamLookup(country.name).includes(normalizeTeamLookup(query))
         )
-      : countries;
+      : mode === "country"
+        ? countries
+        : [];
   const displayedLeagues =
     mode === "team" && query.trim()
       ? leagues.filter((league) =>
@@ -1711,16 +1713,12 @@ function TeamSearchSelect({
           normalizeTeamLookup(city).includes(normalizeTeamLookup(query))
         )
       : cities;
+  const normalizedQuery = normalizeTeamSearchQuery(query);
   const displayedOptions =
-    mode === "team" && query.trim()
+    mode === "team" && normalizedQuery
       ? options.filter((team) =>
-          [
-            team.name,
-            team.country ?? "",
-            team.city ?? "",
-            team.venue ?? "",
-          ].some((value) =>
-            normalizeTeamLookup(value).includes(normalizeTeamLookup(query))
+          [team.name, team.country ?? "", team.city ?? "", team.venue ?? ""].some(
+            (value) => normalizeTeamLookup(value).includes(normalizedQuery)
           )
         )
       : options;
@@ -1811,36 +1809,6 @@ function TeamSearchSelect({
 
         {!selectedTeam && (
           <div className="mt-2 max-h-[420px] overflow-y-auto rounded-lg border border-white/10 bg-[#0d1b33] p-2 shadow-xl shadow-black/20">
-            {mode === "team" && (
-            <div className="mb-2 rounded-lg border border-cyan-300/15 bg-cyan-300/10 p-3">
-              <p className="text-xs font-black uppercase text-cyan-100">
-                Parcours guide
-              </p>
-              <p className="mt-1 text-xs leading-5 text-cyan-100/75">
-                Commence par un pays rapide ou tape une lettre. Ensuite clique une vraie equipe dans la section Equipes.
-              </p>
-              <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-                {quickCountryChoices.map((country) => (
-                  <button
-                    key={country.code ?? country.name}
-                    type="button"
-                    onClick={() => onNationalTeamSelect(country)}
-                    className="flex min-w-0 items-center gap-2 rounded-md border border-white/10 bg-black/15 px-2 py-2 text-left hover:bg-white/[0.07]"
-                  >
-                    <TeamMark
-                      src={country.flag}
-                      name={country.name}
-                      className="h-5 w-5"
-                    />
-                    <span className="truncate text-xs font-black text-white">
-                      {country.name}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
-            )}
-
             {isLoading && (
               <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-black/15 px-3 py-2 text-xs font-bold text-cyan-100">
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -1973,13 +1941,22 @@ function TeamSearchSelect({
             )}
 
             {!isLoading &&
+              query.trim().length < 1 &&
+              mode === "team" &&
+              displayedOptions.length === 0 && (
+                <p className="rounded-lg border border-white/10 bg-black/15 p-3 text-sm text-slate-400">
+                  Tape le nom d&apos;un club ou d&apos;une ligue.
+                </p>
+              )}
+
+            {!isLoading &&
               (query.trim().length >= 1 || mode === "country") &&
               displayedCountries.length === 0 &&
               displayedLeagues.length === 0 &&
               displayedCities.length === 0 &&
               displayedOptions.length === 0 && (
                 <p className="rounded-lg border border-white/10 bg-black/15 p-3 text-sm text-slate-400">
-                  Aucun resultat. Essaie une autre lettre, un pays rapide ou un nom de ligue.
+                  Aucun resultat. Essaie un nom de club ou un nom de ligue.
                 </p>
               )}
           </div>
@@ -2624,7 +2601,13 @@ export default function ChatSlotPage() {
     }
 
     const trimmedQuery = teamA.trim();
-    if (teamAMode === "team" && trimmedQuery.length < 1) {
+    if (
+      teamAMode === "team" &&
+      trimmedQuery.length < 1 &&
+      !teamACountryFilter &&
+      !teamALeagueFilter &&
+      !teamACityFilter
+    ) {
       setTeamACountries([]);
       setTeamALeagues([]);
       setTeamACities([]);
@@ -2633,14 +2616,17 @@ export default function ChatSlotPage() {
       return;
     }
 
-    const searchSeed =
-      teamAMode === "country" ? "" : normalizeTeamLookup(trimmedQuery).slice(0, 1);
+    const shouldLoadCountries =
+      teamAMode === "country";
+    const searchQuery = shouldLoadCountries
+      ? ""
+      : normalizeTeamSearchQuery(trimmedQuery);
     const searchKey =
-      teamAMode === "country"
+      shouldLoadCountries
         ? "countries:all"
         : [
             "team",
-            searchSeed,
+            searchQuery,
             teamACountryFilter ?? "",
             teamALeagueFilter?.id ?? "",
             teamALeagueFilter?.season ?? "",
@@ -2654,11 +2640,11 @@ export default function ChatSlotPage() {
     const timeoutId = window.setTimeout(() => {
       setTeamALoadedSearchKey(searchKey);
       searchTeams({
-        query: searchSeed,
+        query: searchQuery,
         country: teamAMode === "country" ? null : teamACountryFilter,
         league: teamAMode === "country" ? null : teamALeagueFilter,
         city: teamAMode === "country" ? null : teamACityFilter,
-        allCountries: teamAMode === "country",
+        allCountries: shouldLoadCountries,
         setCountries: setTeamACountries,
         setLeagues: setTeamALeagues,
         setCities: setTeamACities,
@@ -2689,7 +2675,13 @@ export default function ChatSlotPage() {
     }
 
     const trimmedQuery = teamB.trim();
-    if (teamBMode === "team" && trimmedQuery.length < 1) {
+    if (
+      teamBMode === "team" &&
+      trimmedQuery.length < 1 &&
+      !teamBCountryFilter &&
+      !teamBLeagueFilter &&
+      !teamBCityFilter
+    ) {
       setTeamBCountries([]);
       setTeamBLeagues([]);
       setTeamBCities([]);
@@ -2698,14 +2690,17 @@ export default function ChatSlotPage() {
       return;
     }
 
-    const searchSeed =
-      teamBMode === "country" ? "" : normalizeTeamLookup(trimmedQuery).slice(0, 1);
+    const shouldLoadCountries =
+      teamBMode === "country";
+    const searchQuery = shouldLoadCountries
+      ? ""
+      : normalizeTeamSearchQuery(trimmedQuery);
     const searchKey =
-      teamBMode === "country"
+      shouldLoadCountries
         ? "countries:all"
         : [
             "team",
-            searchSeed,
+            searchQuery,
             teamBCountryFilter ?? "",
             teamBLeagueFilter?.id ?? "",
             teamBLeagueFilter?.season ?? "",
@@ -2719,11 +2714,11 @@ export default function ChatSlotPage() {
     const timeoutId = window.setTimeout(() => {
       setTeamBLoadedSearchKey(searchKey);
       searchTeams({
-        query: searchSeed,
+        query: searchQuery,
         country: teamBMode === "country" ? null : teamBCountryFilter,
         league: teamBMode === "country" ? null : teamBLeagueFilter,
         city: teamBMode === "country" ? null : teamBCityFilter,
-        allCountries: teamBMode === "country",
+        allCountries: shouldLoadCountries,
         setCountries: setTeamBCountries,
         setLeagues: setTeamBLeagues,
         setCities: setTeamBCities,
@@ -3137,6 +3132,7 @@ export default function ChatSlotPage() {
                     setTeamACountryFilter(null);
                     setTeamALeagueFilter(null);
                     setTeamACityFilter(null);
+                    setTeamALoadedSearchKey(null);
                   }}
                   selectedTeam={resolvedTeamA}
                   countries={teamACountries}
@@ -3223,6 +3219,7 @@ export default function ChatSlotPage() {
                     setTeamBCountryFilter(null);
                     setTeamBLeagueFilter(null);
                     setTeamBCityFilter(null);
+                    setTeamBLoadedSearchKey(null);
                   }}
                   selectedTeam={resolvedTeamB}
                   countries={teamBCountries}
@@ -3920,6 +3917,7 @@ export default function ChatSlotPage() {
                         setTeamACountryFilter(null);
                         setTeamALeagueFilter(null);
                         setTeamACityFilter(null);
+                        setTeamALoadedSearchKey(null);
                       }}
                       selectedTeam={resolvedTeamA}
                       countries={teamACountries}
@@ -4006,6 +4004,7 @@ export default function ChatSlotPage() {
                         setTeamBCountryFilter(null);
                         setTeamBLeagueFilter(null);
                         setTeamBCityFilter(null);
+                        setTeamBLoadedSearchKey(null);
                       }}
                       selectedTeam={resolvedTeamB}
                       countries={teamBCountries}

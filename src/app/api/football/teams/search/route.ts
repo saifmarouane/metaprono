@@ -22,7 +22,8 @@ export async function GET(req: NextRequest) {
   const query = req.nextUrl.searchParams.get("q")?.trim() ?? "";
   const country = req.nextUrl.searchParams.get("country")?.trim() ?? "";
   const city = req.nextUrl.searchParams.get("city")?.trim() ?? "";
-  const league = Number(req.nextUrl.searchParams.get("league"));
+  const leagueParam = req.nextUrl.searchParams.get("league");
+  const league = leagueParam ? Number(leagueParam) : NaN;
   const allCountries = req.nextUrl.searchParams.get("countries") === "all";
   const season = Number(req.nextUrl.searchParams.get("season")) || new Date().getFullYear();
 
