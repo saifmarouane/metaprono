@@ -65,7 +65,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   }
 
   return (
-    <main className="min-h-screen bg-[#11274c] p-3 text-white sm:p-6">
+    <main className="min-h-dvh w-full min-w-0 overflow-x-hidden bg-[#11274c] p-2 text-white min-[340px]:p-3 sm:p-6">
       <div className="mx-auto flex min-h-[calc(100dvh-1.5rem)] max-w-6xl items-center sm:min-h-[calc(100vh-3rem)]">
         <div className="grid w-full gap-5 lg:grid-cols-[0.9fr_1.1fr]">
           <section className="flex flex-col justify-between rounded-xl border border-white/10 bg-[#0d1b33] p-4 shadow-2xl shadow-black/30 sm:p-6">
@@ -79,7 +79,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
                   <h1 className="text-2xl font-black">MetaPronostic</h1>
                 </div>
               </div>
-              <h2 className="text-3xl font-black tracking-normal sm:text-4xl">
+              <h2 className="text-2xl font-black tracking-normal min-[375px]:text-3xl sm:text-4xl">
                 Un seul login pour tous les roles.
               </h2>
               <p className="mt-4 text-sm leading-6 text-slate-300">

@@ -23,22 +23,22 @@ export default async function DashboardLayout({
 
   return (
     <MetaPronosticProvider>
-      <div className="min-h-screen bg-[#11274c] p-3 text-white sm:p-6">
+      <div className="min-h-dvh w-full min-w-0 overflow-x-hidden bg-[#11274c] p-2 text-white min-[340px]:p-3 sm:p-6">
         <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-3">
+          <div className="flex min-w-0 items-center gap-2.5 sm:gap-3">
             <BrandLogo size="md" />
-            <div>
-              <p className="text-xs font-bold uppercase tracking-[0.22em] text-lime-300">
+            <div className="min-w-0">
+              <p className="truncate text-[10px] font-bold uppercase tracking-[0.12em] text-lime-300 min-[360px]:text-xs min-[360px]:tracking-[0.22em]">
                 Prediction cockpit
               </p>
-              <h1 className="text-2xl font-black tracking-normal">
+              <h1 className="truncate text-xl font-black tracking-normal min-[375px]:text-2xl">
                 MetaPronostic
               </h1>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+          <div className="grid grid-cols-1 gap-2 min-[380px]:grid-cols-2 sm:flex sm:flex-wrap">
             {access.user && (
-              <span className="col-span-2 inline-flex min-w-0 items-center justify-center truncate rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-sm font-bold text-slate-200 sm:col-span-1 sm:px-4">
+              <span className="col-span-1 inline-flex min-w-0 items-center justify-center truncate rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-sm font-bold text-slate-200 min-[380px]:col-span-2 sm:col-span-1 sm:px-4">
                 {access.user.name}
               </span>
             )}
@@ -72,7 +72,7 @@ export default async function DashboardLayout({
             </form>
           </div>
         </div>
-        <div className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-4">
+        <div className="mb-5 grid grid-cols-1 gap-2 min-[380px]:grid-cols-2 sm:gap-3 md:grid-cols-4">
           {[
             ["Live fixtures", "12", "text-lime-300"],
             ["Model confidence", "78%", "text-cyan-300"],

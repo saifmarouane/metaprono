@@ -20,9 +20,30 @@
   --font-sans: var(--font-inter);
 }
 
+html {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
 body {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
   background-color: var(--color-primary);
   color: #f8fafc;
   font-family: var(--font-sans);
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  min-width: 0;
+}
+img, svg, video, canvas { max-width: 100%; }
+button, a, input, select, textarea { touch-action: manipulation; }
+input, select, textarea { font-size: 16px; }
+
+@media (min-width: 640px) {
+  input, select, textarea { font-size: inherit; }
 }
 

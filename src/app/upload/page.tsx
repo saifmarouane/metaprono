@@ -72,7 +72,7 @@ export default function UploadPage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-8 px-4 py-12">
+    <div className="mx-auto min-h-dvh min-w-0 max-w-2xl space-y-6 px-3 py-6 min-[375px]:px-4 sm:space-y-8 sm:py-12">
       <div className="flex items-center gap-4">
         <Link
           href="/"
@@ -100,7 +100,7 @@ export default function UploadPage() {
       <Form {...form}>
         <form
           onSubmit={form.handleSubmit(onSubmit)}
-          className="space-y-6 rounded-2xl border border-white/10 bg-[var(--color-dashboard-card)] p-6"
+          className="space-y-6 rounded-xl border border-white/10 bg-[var(--color-dashboard-card)] p-3 min-[375px]:p-4 sm:rounded-2xl sm:p-6"
         >
           <FormField<FormValues, "files">
             control={form.control}

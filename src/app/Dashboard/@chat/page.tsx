@@ -1724,12 +1724,12 @@ function TeamSearchSelect({
       : options;
 
   return (
-    <div>
-      <div className="mb-2 flex items-center justify-between gap-2">
+    <div className="w-full min-w-0 overflow-hidden">
+      <div className="mb-2 flex flex-col gap-2 min-[360px]:flex-row min-[360px]:items-center min-[360px]:justify-between">
         <label className="block text-xs font-black uppercase text-slate-500">
           {label}
         </label>
-        <div className="grid grid-cols-2 overflow-hidden rounded-md border border-white/10 bg-black/20">
+        <div className="grid w-full grid-cols-2 overflow-hidden rounded-md border border-white/10 bg-black/20 min-[360px]:w-auto">
           {[
             ["country", "Pays"],
             ["team", "Equipe"],
@@ -1741,7 +1741,7 @@ function TeamSearchSelect({
                 key={value}
                 type="button"
                 onClick={() => onModeChange(value as PredictionTargetMode)}
-                className={`px-2 py-1 text-[11px] font-black uppercase transition ${
+                className={`min-h-9 min-w-0 px-2 py-1 text-[11px] font-black uppercase transition ${
                   isActive
                     ? "bg-lime-300/15 text-lime-100"
                     : "text-slate-400 hover:bg-white/[0.06]"
@@ -1755,7 +1755,7 @@ function TeamSearchSelect({
       </div>
       <div className="relative">
         <div
-          className={`flex items-center gap-2 rounded-lg border px-3 transition focus-within:ring-2 focus-within:ring-cyan-300/10 ${
+          className={`flex min-w-0 items-center gap-2 rounded-lg border px-2 transition focus-within:ring-2 focus-within:ring-cyan-300/10 min-[360px]:px-3 ${
             selectedTeam
               ? "border-lime-300/35 bg-lime-300/[0.08]"
               : "border-white/10 bg-black/20 focus-within:border-cyan-300/50"
@@ -1785,7 +1785,7 @@ function TeamSearchSelect({
         </div>
 
         {selectedTeam && (
-          <div className="mt-2 flex items-center gap-2 rounded-lg border border-lime-300/20 bg-lime-300/[0.07] px-3 py-2">
+          <div className="mt-2 grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-2 rounded-lg border border-lime-300/20 bg-lime-300/[0.07] px-2 py-2 min-[380px]:grid-cols-[auto_minmax(0,1fr)_auto] min-[380px]:px-3">
             <TeamMark src={selectedTeam.logo} name={selectedTeam.name} />
             <div className="min-w-0 flex-1">
               <p className="truncate text-xs font-black text-lime-50">
@@ -1800,7 +1800,7 @@ function TeamSearchSelect({
             <button
               type="button"
               onClick={() => onQueryChange("")}
-              className="shrink-0 rounded-md border border-lime-300/20 bg-black/15 px-2 py-1 text-[10px] font-black uppercase text-lime-100 hover:bg-black/25"
+              className="col-span-2 w-full rounded-md border border-lime-300/20 bg-black/15 px-2 py-1.5 text-[10px] font-black uppercase text-lime-100 hover:bg-black/25 min-[380px]:col-span-1 min-[380px]:w-auto"
             >
               Changer
             </button>
@@ -1808,7 +1808,7 @@ function TeamSearchSelect({
         )}
 
         {!selectedTeam && (
-          <div className="mt-2 max-h-[420px] overflow-y-auto rounded-lg border border-white/10 bg-[#0d1b33] p-2 shadow-xl shadow-black/20">
+          <div className="mt-2 max-h-[420px] w-full min-w-0 overflow-x-hidden overflow-y-auto rounded-lg border border-white/10 bg-[#0d1b33] p-1.5 shadow-xl shadow-black/20 min-[360px]:p-2">
             {isLoading && (
               <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-black/15 px-3 py-2 text-xs font-bold text-cyan-100">
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -1826,7 +1826,7 @@ function TeamSearchSelect({
                     key={`${country.name}-${country.code ?? "country"}`}
                     className="rounded-lg px-2 py-2 transition hover:bg-white/[0.05]"
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="flex min-w-0 items-center gap-2 min-[360px]:gap-3">
                       <TeamMark
                         src={country.flag}
                         name={country.name}
@@ -1841,11 +1841,11 @@ function TeamSearchSelect({
                         </span>
                       </span>
                     </div>
-                    <div className="mt-2 grid grid-cols-2 gap-2 pl-9">
+                    <div className="mt-2 grid grid-cols-1 gap-2 min-[380px]:grid-cols-2 min-[380px]:pl-8">
                       <button
                         type="button"
                         onClick={() => onNationalTeamSelect(country)}
-                        className={`${mode === "country" ? "col-span-2" : ""} rounded-md bg-lime-300/15 px-2 py-1.5 text-[11px] font-black uppercase text-lime-100 hover:bg-lime-300/20`}
+                        className={`${mode === "country" ? "min-[380px]:col-span-2" : ""} min-w-0 rounded-md bg-lime-300/15 px-2 py-1.5 text-[10px] font-black uppercase text-lime-100 hover:bg-lime-300/20 min-[360px]:text-[11px]`}
                       >
                         {mode === "country" ? "Choisir ce pays" : "Selectionner pays"}
                       </button>
@@ -1853,7 +1853,7 @@ function TeamSearchSelect({
                       <button
                         type="button"
                         onClick={() => onCountrySelect(country)}
-                        className="rounded-md border border-white/10 bg-white/[0.04] px-2 py-1.5 text-[11px] font-black uppercase text-slate-200 hover:bg-white/[0.08]"
+                        className="min-w-0 rounded-md border border-white/10 bg-white/[0.04] px-2 py-1.5 text-[10px] font-black uppercase text-slate-200 hover:bg-white/[0.08] min-[360px]:text-[11px]"
                       >
                         Voir clubs
                       </button>
@@ -1874,7 +1874,7 @@ function TeamSearchSelect({
                     key={league.id}
                     type="button"
                     onClick={() => onLeagueSelect(league)}
-                    className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition hover:bg-white/[0.07]"
+                    className="flex w-full min-w-0 items-center gap-2 rounded-lg px-2 py-2 text-left transition hover:bg-white/[0.07] min-[360px]:gap-3 min-[360px]:px-3"
                   >
                     <TeamMark src={league.logo} name={league.name} className="h-6 w-6" />
                     <span className="min-w-0 flex-1">
@@ -1895,13 +1895,13 @@ function TeamSearchSelect({
                 <p className="px-3 py-2 text-[11px] font-black uppercase text-slate-500">
                   Villes
                 </p>
-                <div className="flex flex-wrap gap-2 px-3 pb-2">
+                <div className="flex min-w-0 flex-wrap gap-2 px-2 pb-2 min-[360px]:px-3">
                   {displayedCities.map((city) => (
                     <button
                       key={city}
                       type="button"
                       onClick={() => onCitySelect(city)}
-                      className="rounded-md border border-white/10 bg-white/[0.04] px-2 py-1 text-xs font-bold text-slate-200 hover:bg-white/[0.08]"
+                      className="max-w-full break-words rounded-md border border-white/10 bg-white/[0.04] px-2 py-1 text-xs font-bold text-slate-200 hover:bg-white/[0.08]"
                     >
                       Filtrer: {city}
                     </button>
@@ -1920,7 +1920,7 @@ function TeamSearchSelect({
                 key={team.id}
                 type="button"
                 onClick={() => onSelect(team)}
-              className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition hover:bg-white/[0.07]"
+              className="flex w-full min-w-0 items-center gap-2 rounded-lg px-2 py-2 text-left transition hover:bg-white/[0.07] min-[360px]:gap-3 min-[360px]:px-3"
             >
                 <TeamMark src={team.logo} name={team.name} />
                   <span className="min-w-0 flex-1">
@@ -1932,7 +1932,7 @@ function TeamSearchSelect({
                     {team.national ? " · National" : ""}
                   </span>
                 </span>
-                <span className="shrink-0 rounded-md bg-lime-300/15 px-2 py-1 text-[10px] font-black uppercase text-lime-100">
+                <span className="hidden shrink-0 rounded-md bg-lime-300/15 px-2 py-1 text-[10px] font-black uppercase text-lime-100 min-[360px]:inline">
                   Choisir
                 </span>
               </button>
@@ -2828,7 +2828,7 @@ export default function ChatSlotPage() {
   }
 
   return (
-    <div className="relative h-full overflow-y-auto px-3 py-4 sm:px-6 lg:px-8">
+    <div className="relative h-full w-full min-w-0 overflow-x-hidden overflow-y-auto px-2 py-3 min-[340px]:px-3 min-[375px]:py-4 sm:px-6 lg:px-8">
       {isScreenBlocked && (
         <div
           className="fixed inset-0 z-[100] flex items-center justify-center bg-[#06101f]/85 px-4 text-white backdrop-blur-sm"
@@ -2933,7 +2933,7 @@ export default function ChatSlotPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center lg:justify-end">
+            <div className="grid grid-cols-1 gap-2 min-[380px]:grid-cols-2 sm:flex sm:flex-wrap sm:items-center lg:justify-end">
               <button
                 type="button"
                 onClick={loadDashboard}
@@ -2953,7 +2953,7 @@ export default function ChatSlotPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-px border-t border-white/10 bg-white/10 sm:grid-cols-4">
+          <div className="grid grid-cols-1 gap-px border-t border-white/10 bg-white/10 min-[380px]:grid-cols-2 sm:grid-cols-4">
             {[
               {
                 label: "Live",
@@ -3075,7 +3075,7 @@ export default function ChatSlotPage() {
                   </p>
                 </div>
               </div>
-              <div className="grid grid-cols-3 gap-2 rounded-lg border border-white/10 bg-black/15 p-2">
+              <div className="grid grid-cols-1 gap-2 rounded-lg border border-white/10 bg-black/15 p-2 min-[400px]:grid-cols-3">
                 {[
                   ["Equipe A", resolvedTeamA ? "OK" : "-"],
                   ["Equipe B", resolvedTeamB ? "OK" : "-"],

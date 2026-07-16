@@ -148,14 +148,14 @@ export default function LandingPage({ authUser }: LandingPageProps) {
   const AuthIcon = authUser ? UserCircle2 : LogIn;
 
   return (
-    <div className="min-h-screen overflow-hidden bg-[#11274c] text-white">
+    <div className="min-h-dvh w-full min-w-0 overflow-x-hidden bg-[#11274c] text-white">
       <nav className="sticky top-0 z-50 border-b border-white/10 bg-[#11274c]/80 backdrop-blur-2xl">
         <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-lime-300/40 to-transparent" />
-        <div className="mx-auto flex h-22 max-w-7xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto flex h-20 max-w-7xl items-center justify-between gap-2 px-3 min-[360px]:h-22 min-[360px]:gap-3 min-[360px]:px-4 sm:px-6 lg:px-8">
           <div className="flex min-w-0 items-center gap-3">
             <Link href="/" className="group flex min-w-0 items-center gap-3">
               <BrandLogo size="md" />
-              <span className="min-w-0 truncate text-base font-black uppercase tracking-wide sm:text-lg">
+              <span className="min-w-0 truncate text-sm font-black uppercase tracking-wide min-[360px]:text-base sm:text-lg">
                 MetaPronostic
               </span>
             </Link>
@@ -257,7 +257,7 @@ export default function LandingPage({ authUser }: LandingPageProps) {
         )}
       </nav>
 
-      <section className="relative min-h-[calc(100dvh-4rem)] px-4 py-7 sm:px-6 sm:py-8 lg:px-8">
+      <section className="relative min-h-[calc(100dvh-4rem)] px-3 py-6 min-[360px]:px-4 min-[360px]:py-7 sm:px-6 sm:py-8 lg:px-8">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_22%_16%,rgba(132,204,22,0.18),transparent_28%),radial-gradient(circle_at_82%_22%,rgba(34,211,238,0.12),transparent_30%),linear-gradient(135deg,rgba(34,197,94,0.12),transparent_38%,rgba(34,211,238,0.08)_72%,transparent)]" />
         <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.025)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.025)_1px,transparent_1px)] bg-[size:48px_48px]" />
         <div className="relative mx-auto grid max-w-7xl items-center gap-10 lg:grid-cols-[0.86fr_1.14fr]">
@@ -277,7 +277,7 @@ export default function LandingPage({ authUser }: LandingPageProps) {
             <motion.h1
               variants={fadeInUp}
               custom={1}
-              className="max-w-4xl text-4xl font-black leading-[1.02] tracking-normal text-white sm:text-6xl lg:text-7xl"
+              className="max-w-4xl break-words text-3xl font-black leading-[1.02] tracking-normal text-white min-[360px]:text-4xl sm:text-6xl lg:text-7xl"
             >
               MetaPronostic
             </motion.h1>

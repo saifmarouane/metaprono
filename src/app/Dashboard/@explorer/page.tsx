@@ -118,8 +118,8 @@ export default function ExplorerSlotPage() {
   return (
     <div className="flex h-full flex-col">
       {/* Minimalist Header */}
-      <div className="border-b border-white/10 px-8 py-6">
-        <div className="flex items-center justify-between">
+      <div className="border-b border-white/10 px-3 py-4 sm:px-6 sm:py-5 lg:px-8 lg:py-6">
+        <div className="flex flex-col gap-3 min-[420px]:flex-row min-[420px]:items-center min-[420px]:justify-between">
           <div className="flex items-center gap-3">
             <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-cyan-400/10 text-cyan-300">
               <Database className="h-6 w-6" />
@@ -140,9 +140,9 @@ export default function ExplorerSlotPage() {
       </div>
 
       {/* Content Area */}
-      <div className="flex-1 overflow-y-auto px-8 py-6">
+      <div className="flex-1 overflow-y-auto px-3 py-4 sm:px-6 sm:py-5 lg:px-8 lg:py-6">
         <div className="mx-auto max-w-2xl space-y-6">
-          <section className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          <section className="grid grid-cols-1 gap-2 min-[380px]:grid-cols-2 sm:grid-cols-3 sm:gap-3">
             {dataCollections.map((collection) => (
               <div
                 key={collection}
@@ -181,7 +181,7 @@ export default function ExplorerSlotPage() {
                       isDragging
                         ? "border-lime-300/60 bg-lime-300/10"
                         : "border-white/20 bg-white/5 hover:border-lime-300/40 hover:bg-white/10"
-                    } p-12 text-center cursor-pointer`}
+                    } cursor-pointer p-5 text-center sm:p-8 lg:p-12`}
                     onClick={() => fileInputRef.current?.click()}
                   >
                     <input
@@ -204,7 +204,7 @@ export default function ExplorerSlotPage() {
                       }}
                     />
                     <div className="flex flex-col items-center gap-4">
-                      <div className="flex h-20 w-20 items-center justify-center rounded-xl bg-cyan-400/10">
+                      <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-cyan-400/10 sm:h-20 sm:w-20">
                         {isSubmitting ? (
                           <Loader2 className="h-10 w-10 animate-spin text-cyan-300" />
                         ) : (
@@ -215,10 +215,10 @@ export default function ExplorerSlotPage() {
                         <p className="text-base font-black text-white">
                           {isSubmitting
                             ? "Indexation du rapport en cours..."
-                            : "Importer rapports PDF, Excel ou exports d'analyse"}
+                            : "Importer rapports PDF, Excel ou exports d’analyse"}
                         </p>
                         <p className="mt-2 text-sm text-slate-400">
-                          PDF, Excel (.xlsx, .xls) jusqu'a 10 MB
+                          PDF, Excel (.xlsx, .xls) jusqu’à 10 MB
                         </p>
                       </div>
                     </div>
